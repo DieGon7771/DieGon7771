@@ -1,0 +1,211 @@
+[
+    {
+        "url": "https://raw.githubusercontent.com/DieGon7771/DieGon7771/builds/AltaDefinizione.cs3",
+        "status": 1,
+        "version": 8,
+        "name": "AltaDefinizione",
+        "internalName": "AltaDefinizione",
+        "authors": [
+            "doGior",
+            "DieGon"
+        ],
+        "description": "Film e SerieTV da Altadefinizione",
+        "fileSize": 21355,
+        "repositoryUrl": "https://github.com/DieGon7771/DieGon7771",
+        "language": "it",
+        "tvTypes": [
+            "Movie",
+            "TvSeries",
+            "Documentary"
+        ],
+        "iconUrl": "https://altadefinizionegratis.bid/templates/Dark/img/favicon.ico",
+        "apiVersion": 1
+    },
+    {
+        "url": "https://raw.githubusercontent.com/DieGon7771/DieGon7771/builds/AnimeUnity.cs3",
+        "status": 1,
+        "version": 15,
+        "name": "AnimeUnity",
+        "internalName": "AnimeUnity",
+        "authors": [
+            "doGior",
+            "DieGon"
+        ],
+        "description": "Anime da AnimeUnity",
+        "fileSize": 35498,
+        "repositoryUrl": "https://github.com/DieGon7771/DieGon7771",
+        "language": "it",
+        "tvTypes": [
+            "AnimeMovie",
+            "Anime",
+            "OVA"
+        ],
+        "iconUrl": "https://www.animeunity.so/apple-touch-icon.png",
+        "apiVersion": 1
+    },
+    {
+        "url": "https://raw.githubusercontent.com/DieGon7771/DieGon7771/builds/AnimeWorld.cs3",
+        "status": 1,
+        "version": 16,
+        "name": "AnimeWorld",
+        "internalName": "AnimeWorld",
+        "authors": [
+            "doGior",
+            "DieGon"
+        ],
+        "description": "Anime da AnimeWorld",
+        "fileSize": 37461,
+        "repositoryUrl": "https://github.com/DieGon7771/DieGon7771",
+        "language": "it",
+        "tvTypes": [
+            "AnimeMovie",
+            "Anime",
+            "OVA"
+        ],
+        "iconUrl": "https://static.animeworld.ac/assets/images/favicon/android-icon-192x192.png?s",
+        "apiVersion": 1
+    },
+    {
+        "url": "https://raw.githubusercontent.com/DieGon7771/DieGon7771/builds/CalcioStreaming.cs3",
+        "status": 1,
+        "version": 9,
+        "name": "CalcioStreaming",
+        "internalName": "CalcioStreaming",
+        "authors": [
+            "doGior",
+            "DieGon"
+        ],
+        "description": "Live streams da CalcioStreaming",
+        "fileSize": 12750,
+        "repositoryUrl": "https://github.com/DieGon7771/DieGon7771",
+        "language": "it",
+        "tvTypes": [
+            "Live"
+        ],
+        "iconUrl": "https://www.calciostreaming.cool/templates/calciostreaming1/images/icons/apple-touch-icon.png",
+        "apiVersion": 1
+    },
+    {
+        "url": "https://raw.githubusercontent.com/DieGon7771/DieGon7771/builds/CB01.cs3",
+        "status": 1,
+        "version": 16,
+        "name": "CB01",
+        "internalName": "CB01",
+        "authors": [
+            "doGior",
+            "DieGon"
+        ],
+        "description": "Film e SerieTV da CB01",
+        "fileSize": 29904,
+        "repositoryUrl": "https://github.com/DieGon7771/DieGon7771",
+        "language": "it",
+        "tvTypes": [
+            "Movie",
+            "TvSeries",
+            "Cartoon"
+        ],
+        "iconUrl": "https://cb01.uno/favicon-512x512.png",
+        "apiVersion": 1
+    },
+    {
+        "url": "https://raw.githubusercontent.com/DieGon7771/DieGon7771/builds/CorsaroNero.cs3",
+        "status": 1,
+        "version": 4,
+        "name": "CorsaroNero",
+        "internalName": "CorsaroNero",
+        "authors": [
+            "doGior"
+        ],
+        "description": "Torrent da Il Corsaro Nero. If something doesn't work the torrent has probably not enough seeds",
+        "fileSize": 29286,
+        "repositoryUrl": "https://github.com/DieGon7771/DieGon7771",
+        "language": "it",
+        "tvTypes": [
+            "Movie",
+            "Torrent"
+        ],
+        "iconUrl": "https://ilcorsaronero.link/favicon.ico",
+        "apiVersion": 1
+    },
+    {
+        "url": "https://raw.githubusercontent.com/DieGon7771/DieGon7771/builds/Huhu.cs3",
+        "status": 1,
+        "version": 4,
+        "name": "Huhu",
+        "internalName": "Huhu",
+        "authors": [
+            "DieGon"
+        ],
+        "description": "Canali TV da Huhu",
+        "fileSize": 23524,
+        "repositoryUrl": "https://github.com/DieGon7771/DieGon7771",
+        "tvTypes": [
+            "Live"
+        ],
+        "iconUrl": "https://huhu.to/favicon.ico",
+        "apiVersion": 1
+    },
+    {
+        "url": "https://raw.githubusercontent.com/DieGon7771/DieGon7771/builds/StreamingCommunity.cs3",
+        "status": 1,
+        "version": 25,
+        "name": "StreamingCommunity",
+        "internalName": "StreamingCommunity",
+        "authors": [
+            "doGior",
+            "DieGon"
+        ],
+        "description": "Film e SerieTV da StreamingCommunity",
+        "fileSize": 41741,
+        "repositoryUrl": "https://github.com/DieGon7771/DieGon7771",
+        "language": "it",
+        "tvTypes": [
+            "TvSeries",
+            "Movie",
+            "Documentary",
+            "Cartoon"
+        ],
+        "iconUrl": "https://streamingunity.to/apple-touch-icon.png?v=2",
+        "apiVersion": 1
+    },
+    {
+        "url": "https://raw.githubusercontent.com/DieGon7771/DieGon7771/builds/Torrentio.cs3",
+        "status": 1,
+        "version": 5,
+        "name": "Torrentio",
+        "internalName": "Torrentio",
+        "authors": [
+            "doGior"
+        ],
+        "description": "Torrent da Torrentio",
+        "fileSize": 38884,
+        "repositoryUrl": "https://github.com/DieGon7771/DieGon7771",
+        "language": "it",
+        "tvTypes": [
+            "Movie",
+            "TvSeries",
+            "Torrent",
+            "Documentary"
+        ],
+        "iconUrl": "https://torrentio.strem.fun/images/logo_v1.png",
+        "apiVersion": 1
+    },
+    {
+        "url": "https://raw.githubusercontent.com/DieGon7771/DieGon7771/builds/TV.cs3",
+        "status": 1,
+        "version": 4,
+        "name": "TV",
+        "internalName": "TV",
+        "authors": [
+            "DieGon"
+        ],
+        "description": "TV live da TV github repository",
+        "fileSize": 27774,
+        "repositoryUrl": "https://github.com/DieGon7771/DieGon7771",
+        "tvTypes": [
+            "Live"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/doGior/doGiorsHadEnough/refs/heads/master/TV/television.png",
+        "apiVersion": 1
+    }
+]
