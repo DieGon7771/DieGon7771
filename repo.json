@@ -1,7 +1,7 @@
 {
-  "name": "doGior's Had Enough",
-  "iconUrl": "https://raw.githubusercontent.com/doGior/doGiorsHadEnough/master/repo_icon.png",
-  "description": "Repository with mostly italian providers and some international one",
+  "name": "DieGon Repository",
+  "iconUrl": "https://raw.githubusercontent.com/DieGon7771/DieGon7771/master/repo_icon.png",
+  "description": "Repository con provider prevalentemente italiani e alcuni internazionali",
   "manifestVersion": 1,
   "pluginLists": [
     "https://raw.githubusercontent.com/DieGon7771/DieGon7771/builds/plugins.json"
