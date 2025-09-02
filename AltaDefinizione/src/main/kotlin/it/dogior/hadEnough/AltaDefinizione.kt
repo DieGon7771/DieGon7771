@@ -59,9 +59,45 @@ class AltaDefinizione : MainAPI() {
         "$mainUrl/western/" to "Western"
     )
 
+    // default headers più "umani" per ridurre il rischio di challenge immediata
+    private fun defaultHeaders(referer: String? = null): Map<String, String> {
+        val base = mutableMapOf(
+            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+            "Accept-Language" to "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Connection" to "keep-alive",
+            "Referer" to (referer ?: mainUrl)
+        )
+        return base
+    }
+
+    // safeGet: ottiene la pagina e controlla se sembra un challenge/captcha
+    private suspend fun safeGet(url: String, referer: String? = null, timeout: Int = 15_000): Document? {
+        try {
+            val resp = app.get(url, headers = defaultHeaders(referer), timeout = timeout)
+            val body = resp.body.string()
+            // controllo semplificato per rilevare challenge/captcha
+            val lower = body.lowercase()
+            if (lower.contains("checking your browser") ||
+                lower.contains("cf-chl-bypass") ||
+                lower.contains("please enable javascript") ||
+                lower.contains("captcha") ||
+                lower.contains("recaptcha") ||
+                lower.contains("cloudflare")
+            ) {
+                Log.e("AltaDefinizione", "Rilevata challenge/captcha su: $url")
+                return null
+            }
+            return org.jsoup.Jsoup.parse(body)
+        } catch (e: Exception) {
+            Log.e("AltaDefinizione", "safeGet error: ${e.message}")
+            return null
+        }
+    }
+
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val url = "${request.data}page/$page/"
-        val doc = app.get(url).document
+        val doc = safeGet(url) ?: throw Exception("Pagina bloccata o non raggiungibile (captcha/cloudflare).")
         val items = doc.select("#dle-content > .col").mapNotNull {
             it.toSearchResponse()
         }
@@ -77,7 +113,6 @@ class AltaDefinizione : MainAPI() {
         val title = this.select(".movie-title > a").text().trim()
         val href = aTag.attr("href")
         val poster = fixUrlNull(img)
-//        val rating = this.selectFirst("span.rate")?.text()
         return newMovieSearchResponse(title, href) {
             this.posterUrl = poster
         }
@@ -85,17 +120,24 @@ class AltaDefinizione : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         val requestBody = formRequestBody(query)
-        val doc = app.post(
-            "$mainUrl/",
-            requestBody = requestBody,
-            headers = mapOf(
-                "Content-Type" to "application/x-www-form-urlencoded",
-                "Content-Length" to requestBody.contentLength().toString()
+        try {
+            val resp = app.post(
+                "$mainUrl/",
+                requestBody = requestBody,
+                headers = defaultHeaders(mainUrl)
             )
-        ).document
-
-        return doc.select("div.movie").mapNotNull {
-            it.toSearchResponse()
+            val body = resp.body.string()
+            // controllo captcha nella risposta
+            val lower = body.lowercase()
+            if (lower.contains("captcha") || lower.contains("checking your browser")) {
+                Log.e("AltaDefinizione", "search blocked by captcha")
+                return emptyList()
+            }
+            val doc = org.jsoup.Jsoup.parse(body)
+            return doc.select("div.movie").mapNotNull { it.toSearchResponse() }
+        } catch (e: Exception) {
+            Log.e("AltaDefinizione", "search error: ${e.message}")
+            return emptyList()
         }
     }
 
@@ -107,23 +149,23 @@ class AltaDefinizione : MainAPI() {
             .build()
     }
 
-
     override suspend fun load(url: String): LoadResponse {
-        val doc = app.get(url).document
+        val doc = safeGet(url) ?: throw Exception("Pagina bloccata o non raggiungibile (captcha/cloudflare).")
         val info = doc.selectFirst("div.row.align-items-start")!!
-        val poster = fixUrlNull(info.select("img.movie_entry-poster").attr("data-src"))
-        val plot = info.selectFirst("#text-content")?.ownText()?.trim() +
-                info.selectFirst(".more-text")?.ownText()?.trim()
+        val poster = fixUrlNull(info.select("img.movie_entry-poster")?.attr("data-src"))
+        val plot = (info.selectFirst("#text-content")?.ownText()?.trim().orEmpty() +
+                info.selectFirst(".more-text")?.ownText()?.trim().orEmpty()).trim()
         val title = info.select("h1.movie_entry-title").text().ifEmpty { "Sconosciuto" }
         val duration = info.select("div.meta-list > span").last()?.text()
         val rating = doc.select("span.label.imdb").text()
 
         val details = info.select(".movie_entry-details").select("div.row.flex-nowrap.mb-2")
-        val genreElements = details.toList().first { it.text().contains("Genere: ") }
-        val genres = genreElements.select("a").map { it.text() }
-        val yearElements = details.toList().first { it.text().contains("Anno: ") }
-        val year = yearElements.select("div").last()?.text()
+        val genreElements = details.firstOrNull { it.text().contains("Genere: ") }
+        val genres = genreElements?.select("a")?.map { it.text() } ?: emptyList()
+        val yearElements = details.firstOrNull { it.text().contains("Anno: ") }
+        val year = yearElements?.select("div")?.last()?.text()
         val episodes = getEpisodes(doc)
+
         return if (episodes.size > 1) {
             newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
                 this.posterUrl = poster
@@ -132,20 +174,20 @@ class AltaDefinizione : MainAPI() {
                 addRating(rating)
             }
         } else {
-            val rows = doc.select("iframe").first()
-            val mostraGuardaLink = rows?.attr("src")
-            val link = if (mostraGuardaLink?.contains("mostraguarda") == true) {
-                val mostraGuarda = app.get(mostraGuardaLink).document
-                val mirrors = mostraGuarda.select("ul._player-mirrors > li").mapNotNull {
+            val iframe = doc.selectFirst("iframe")
+            val mostraGuardaLink = iframe?.attr("src")
+            val linkList = if (mostraGuardaLink?.contains("mostraguarda") == true) {
+                val mostraDoc = safeGet(mostraGuardaLink, referer = url)
+                val mirrors = mostraDoc?.select("ul._player-mirrors > li")?.mapNotNull {
                     val l = it.attr("data-link")
-                    if (l.contains("mostraguarda")) null
-                    else fixUrlNull(l)
-                }
+                    if (l.contains("mostraguarda")) null else fixUrlNull(l)
+                } ?: emptyList()
                 mirrors
             } else {
                 emptyList()
             }
-            newMovieLoadResponse(title, url, TvType.Movie, link) {
+
+            newMovieLoadResponse(title, url, TvType.Movie, linkList) {
                 this.posterUrl = poster
                 this.plot = plot
                 this.tags = genres
@@ -161,7 +203,7 @@ class AltaDefinizione : MainAPI() {
         return episodeElements.map {
             val season = it.attr("data-season")
             val episode = it.attr("data-episode").substringAfter("-")
-            val mirrors = it.select(".dropdown-menu > span").map { it.attr("data-link") }
+            val mirrors = it.select(".dropdown-menu > span").mapNotNull { it.attr("data-link") }
             newEpisode(mirrors) {
                 this.season = season.toIntOrNull()
                 this.episode = episode.toIntOrNull()
@@ -175,15 +217,34 @@ class AltaDefinizione : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit,
     ): Boolean {
-        val links = parseJson<List<String>>(data)
-        links.map {
-            loadExtractor(it, subtitleCallback, callback)
+        val links = try {
+            parseJson<List<String>>(data)
+        } catch (e: Exception) {
+            Log.e("AltaDefinizione", "parseJson links error: ${e.message}")
+            return false
         }
-        return false
-    }
 
-//    data class VideoStream(
-//        val host: String,
-//        val url: String
-//    )
+        var foundAny = false
+
+        links.forEach { raw ->
+            val l = raw ?: return@forEach
+            // prima verifichiamo se la pagina è raggiungibile (no captcha)
+            val testDoc = safeGet(l)
+            if (testDoc == null) {
+                Log.e("AltaDefinizione", "Link bloccato o challenge rilevata, skipping: $l")
+                return@forEach
+            }
+
+            try {
+                // invoca gli estrattori disponibili tramite utilità loadExtractor
+                // alcuni estrattori richiedono anche la referer: qui passiamo il link corrente
+                loadExtractor(l, l, subtitleCallback, callback)
+                foundAny = true
+            } catch (e: Exception) {
+                Log.e("AltaDefinizione", "Errore estrazione per $l : ${e.message}")
+            }
+        }
+
+        return foundAny
+    }
 }
