@@ -29,7 +29,8 @@ import com.lagradost.cloudstream3.utils.ExtractorLink
 import okhttp3.HttpUrl.Companion.toHttpUrl
 
 class StreamingCommunity : MainAPI() {
-    override var mainUrl = Companion.mainUrl       // include /it
+
+    override var mainUrl = Companion.mainUrl
     override var name = Companion.name
     override var supportedTypes =
         setOf(TvType.Movie, TvType.TvSeries, TvType.Cartoon, TvType.Documentary)
@@ -44,8 +45,8 @@ class StreamingCommunity : MainAPI() {
             "X-Inertia-Version" to inertiaVersion,
             "X-Requested-With" to "XMLHttpRequest",
         )
-        val mainUrl = "https://streamingcommunityz.bid/it"   // per browse/iframe
-        private val baseUrl = "https://streamingcommunityz.bid" // per API
+        val mainUrl = "https://streamingcommunityz.bid/it"
+        private val baseUrl = "https://streamingcommunityz.bid"
         var name = "StreamingCommunity"
     }
 
@@ -94,13 +95,14 @@ class StreamingCommunity : MainAPI() {
     }
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val url: String = baseUrl + "/api" + request.data.substringAfter(baseUrl)
+        var url: String = baseUrl + "/api" + request.data.substringAfter(baseUrl)
         val params = mutableMapOf("lang" to "it")
 
         val section = request.data.substringAfterLast("/")
         if (section !in listOf("top10", "latest", "trending")) {
             val genere = url.substringAfterLast('=').substringBefore('?')
-            url.substringBeforeLast('?').let { params["g"] = genere }
+            url = url.substringBeforeLast('?')
+            params["g"] = genere
         }
 
         if (page > 0) params["offset"] = ((page - 1) * 60).toString()
@@ -123,33 +125,33 @@ class StreamingCommunity : MainAPI() {
         val params = mapOf("q" to query)
 
         if (headers["Cookie"].isNullOrEmpty()) setupHeaders()
-        val response = app.get(url, params = params, headers = headers).body.string()
+        val response = app.get(url, params = params, headers = headers.toMap()).body.string()
         val result = parseJson<InertiaResponse>(response)
-        return searchResponseBuilder(result.props.titles!!)
+        return searchResponseBuilder(result.props.titles ?: emptyList())
     }
 
     override suspend fun load(url: String): LoadResponse {
         val actualUrl = getActualUrl(url)
         if (headers["Cookie"].isNullOrEmpty()) setupHeaders()
-        val response = app.get(actualUrl, headers = headers)
+        val response = app.get(actualUrl, headers = headers.toMap())
         val responseBody = response.body.string()
         val props = parseJson<InertiaResponse>(responseBody).props
-        val title = props.title!!
+        val title = props.title ?: return LoadResponse()
         val genres = title.genres.map { it.name.capitalize() }
         val domain = mainUrl.substringAfter("://").substringBeforeLast("/")
         val year = title.releaseDate?.substringBefore('-')?.toIntOrNull()
         val related = props.sliders?.getOrNull(0)
         val trailers = title.trailers?.mapNotNull { it.getYoutubeUrl() }
 
-        if (title.type == "tv") {
-            val episodes: List<Episode> = getEpisodes(props)
-            return newTvSeriesLoadResponse(title.name, actualUrl, TvType.TvSeries, episodes) {
+        return if (title.type == "tv") {
+            val episodes = getEpisodes(props)
+            newTvSeriesLoadResponse(title.name, actualUrl, TvType.TvSeries, episodes) {
                 posterUrl = "https://cdn.$domain/images/${title.getBackgroundImageId()}"
                 this.tags = genres
                 this.episodes = episodes
                 this.year = year
                 this.plot = title.plot
-                title.age?.let { this.contentRating = "$it+" }
+                title.age?.let { contentRating = "$it+" }
                 this.recommendations = related?.titles?.let { searchResponseBuilder(it) }
                 title.imdbId?.let { addImdbId(it) }
                 title.tmdbId?.let { addTMDbId(it.toString()) }
@@ -158,18 +160,18 @@ class StreamingCommunity : MainAPI() {
                 if (!trailers.isNullOrEmpty()) addTrailer(trailers)
             }
         } else {
-            return newMovieLoadResponse(title.name, actualUrl, TvType.Movie, dataUrl = "$mainUrl/iframe/${title.id}&canPlayFHD=1") {
+            newMovieLoadResponse(title.name, actualUrl, TvType.Movie, dataUrl = "$mainUrl/iframe/${title.id}&canPlayFHD=1") {
                 posterUrl = "https://cdn.$domain/images/${title.getBackgroundImageId()}"
                 this.tags = genres
                 this.year = year
                 this.plot = title.plot
-                title.age?.let { this.contentRating = "$it+" }
+                title.age?.let { contentRating = "$it+" }
                 this.recommendations = related?.titles?.let { searchResponseBuilder(it) }
                 addActors(title.mainActors?.map { it.name })
                 addRating(title.score)
                 title.imdbId?.let { addImdbId(it) }
                 title.tmdbId?.let { addTMDbId(it.toString()) }
-                title.runtime?.let { this.duration = it }
+                title.runtime?.let { duration = it }
                 if (!trailers.isNullOrEmpty()) addTrailer(trailers)
             }
         }
@@ -183,16 +185,17 @@ class StreamingCommunity : MainAPI() {
 
     private suspend fun getEpisodes(props: Props): List<Episode> {
         val episodeList = mutableListOf<Episode>()
-        val title = props.title
-        title?.seasons?.forEach { season ->
+        val title = props.title ?: return episodeList
+
+        title.seasons?.forEach { season ->
             val responseEpisodes = mutableListOf<it.dogior.hadEnough.Episode>()
-            if (season.id == props.loadedSeason!!.id) {
-                responseEpisodes.addAll(props.loadedSeason.episodes!!)
+            if (season.id == props.loadedSeason?.id) {
+                props.loadedSeason?.episodes?.let { responseEpisodes.addAll(it) }
             } else {
                 if (inertiaVersion.isEmpty()) setupHeaders()
                 val url = "$mainUrl/titles/${title.id}-${title.slug}/season-${season.number}"
-                val obj = parseJson<InertiaResponse>(app.get(url, headers = headers).body.string())
-                responseEpisodes.addAll(obj.props.loadedSeason?.episodes!!)
+                val obj = parseJson<InertiaResponse>(app.get(url, headers = headers.toMap()).body.string())
+                obj.props.loadedSeason?.episodes?.let { responseEpisodes.addAll(it) }
             }
             responseEpisodes.forEach { ep ->
                 episodeList.add(newEpisode("$mainUrl/iframe/${title.id}?episode_id=${ep.id}&canPlayFHD=1") {
@@ -205,6 +208,7 @@ class StreamingCommunity : MainAPI() {
                 })
             }
         }
+
         return episodeList
     }
 
