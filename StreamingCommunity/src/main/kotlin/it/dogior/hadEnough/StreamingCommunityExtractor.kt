@@ -1,6 +1,5 @@
 package it.dogior.hadEnough
 
-
 import android.util.Log
 import com.lagradost.cloudstream3.SubtitleFile
 import com.lagradost.cloudstream3.app
@@ -18,54 +17,64 @@ class StreamingCommunityExtractor : ExtractorApi() {
     override val requiresReferer = false
 
     override suspend fun getUrl(
-            url: String,
-            referer: String?,
-            subtitleCallback: (SubtitleFile) -> Unit,
-            callback: (ExtractorLink) -> Unit
+        url: String,
+        referer: String?,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
     ) {
         val TAG = "GetUrl"
-        Log.d(TAG,"REFERER: $referer  URL: $url")
+        Log.d(TAG, "REFERER: $referer  URL: $url")
 
-        if (url.isNotEmpty()) {
-            val response = app.get(url).document
-            val iframeSrc = response.select("iframe").attr("src")
-            val playlistUrl = getPlaylistLink(iframeSrc)
-//            val playlistUrl = getPlaylistLink(url)
-            Log.w(TAG, "FINAL URL: $playlistUrl")
-
-            callback.invoke(
-                newExtractorLink(
-                    source = "Vixcloud",
-                    name = "Streaming Community",
-                    url = playlistUrl,
-                    type = ExtractorLinkType.M3U8
-                ) {
-                    this.referer = referer!!
-                    this.quality = Qualities.Unknown.value
-                }
-            )
+        if (url.isBlank()) {
+            Log.e(TAG, "❌ URL vuoto")
+            return
         }
 
+        val response = app.get(url).document
+        val iframeSrc = response.selectFirst("iframe")?.attr("src")
+
+        if (iframeSrc.isNullOrBlank()) {
+            Log.e(TAG, "❌ Nessun iframe trovato in $url")
+            return
+        }
+
+        val playlistUrl = try {
+            getPlaylistLink(iframeSrc)
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Errore getPlaylistLink: ${e.message}")
+            return
+        }
+
+        Log.w(TAG, "✅ FINAL URL: $playlistUrl")
+
+        callback.invoke(
+            newExtractorLink(
+                source = "Vixcloud",
+                name = "Streaming Community",
+                url = playlistUrl,
+                type = ExtractorLinkType.M3U8
+            ) {
+                this.referer = referer ?: mainUrl
+                this.quality = Qualities.Unknown.value
+            }
+        )
     }
 
     private suspend fun getPlaylistLink(url: String): String {
         val TAG = "getPlaylistLink"
-
         Log.d(TAG, "Item url: $url")
 
         val script = getScript(url)
         val masterPlaylist = script.masterPlaylist
 
-        var masterPlaylistUrl: String
         val params = "token=${masterPlaylist.params.token}&expires=${masterPlaylist.params.expires}"
-        masterPlaylistUrl = if ("?b" in masterPlaylist.url) {
+        var masterPlaylistUrl = if ("?b" in masterPlaylist.url) {
             "${masterPlaylist.url.replace("?b:1", "?b=1")}&$params"
-        } else{
+        } else {
             "${masterPlaylist.url}?$params"
         }
-        Log.d("getPlaylistLink", "masterPlaylistUrl: ${masterPlaylist.url}")
 
-        if(script.canPlayFHD){
+        if (script.canPlayFHD) {
             masterPlaylistUrl += "&h=1"
         }
 
@@ -73,47 +82,38 @@ class StreamingCommunityExtractor : ExtractorApi() {
         return masterPlaylistUrl
     }
 
-    private suspend fun getScript(url:String): Script {
+    private suspend fun getScript(url: String): Script {
         Log.d("getScript", "url: $url")
+
         val headers = mutableMapOf(
             "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
             "Host" to url.toHttpUrl().host,
             "Referer" to mainUrl,
-            "Sec-Fetch-Dest" to "iframe",
-            "Sec-Fetch-Mode" to "navigate",
-            "Sec-Fetch-Site" to "cross-site",
             "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:131.0) Gecko/20100101 Firefox/131.0",
         )
 
         val iframe = app.get(url, headers = headers).document
-        Log.d("getScript", "IFRAME1: $iframe")
         val scripts = iframe.select("script")
-        val script = scripts.find { it.data().contains("masterPlaylist") }!!.data().replace("\n", "\t")
+        val scriptRaw = scripts.find { it.data().contains("masterPlaylist") }?.data()
+            ?: throw Exception("Nessuno script con masterPlaylist trovato")
 
-        val scriptJson = getSanitisedScript(script)
-        Log.d("getScript", "Script Json: $scriptJson")
+        // estrai solo il blocco JSON di masterPlaylist e altre variabili
+        val sanitised = getSanitisedScript(scriptRaw)
+        Log.d("getScript", "Sanitised: ${sanitised.take(300)}...")
 
-        val scriptObj = parseJson<Script>(scriptJson)
-        Log.d("getScript", "Script Obj: $scriptObj")
-
-        return scriptObj
+        return parseJson(sanitised)
     }
 
     private fun getSanitisedScript(script: String): String {
-        return "{" + script.replace("window.video", "\"video\"")
+        // Estrarre solo oggetti utili, senza sostituire tutto a caso
+        return "{" + script
+            .replace("window.video", "\"video\"")
             .replace("window.streams", "\"streams\"")
             .replace("window.masterPlaylist", "\"masterPlaylist\"")
             .replace("window.canPlayFHD", "\"canPlayFHD\"")
-            .replace("params", "\"params\"")
-            .replace("url", "\"url\"")
-            .replace("\"\"url\"\"", "\"url\"")
-            .replace("\"canPlayFHD\"", ",\"canPlayFHD\"")
-            .replace(",\t        }", "}")
-            .replace(",\t            }", "}")
             .replace("'", "\"")
-            .replace(";", ",")
+            .replace(";", "")
             .replace("=", ":")
-            .replace("\\", "")
             .trimIndent() + "}"
     }
 }
