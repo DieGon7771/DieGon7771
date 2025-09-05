@@ -8,6 +8,12 @@ data class Section(
     @JsonProperty("titles") val titles: List<Title>,
 )
 
+data class SearchResponse(
+    @JsonProperty("current_page") val currentPage: Int,
+    @JsonProperty("data") val data: List<Title>,
+    @JsonProperty("last_page") val lastPge: Int
+)
+
 data class Title(
     @JsonProperty("id") val id: Int,
     @JsonProperty("name") val name: String,
@@ -151,42 +157,3 @@ data class Trailer(
         return "https://www.youtube.com/watch?v=${this.youtubeId}"
     }
 }
-
-data class Script(
-    @JsonProperty("video") val videoInfo: SourceFile,
-    @JsonProperty("streams") val servers: List<Server>,
-    @JsonProperty("masterPlaylist") val masterPlaylist: MasterPlaylist,
-    @JsonProperty("canPlayFHD") val canPlayFHD: Boolean
-)
-
-data class MasterPlaylist(
-    @JsonProperty("params") val params: Params,
-    @JsonProperty("url") val url: String
-) {
-    data class Params(
-        @JsonProperty("token") val token: String,
-        @JsonProperty("expires") val expires: String
-    )
-}
-
-data class Server(
-    @JsonProperty("name") val name: String,
-    @JsonProperty("active") val active: Boolean,
-    @JsonProperty("url") val url: String
-)
-
-data class SourceFile(
-    val id: Int,
-    val name: String,
-    val filename: String?,
-    val size: Int,
-    val quality: Int,
-    val duration: Int,
-    val views: Int,
-    val is_viewable: Int,
-    val status: String,
-    val fps: Float?,
-    val legacy: Int,
-    val folder_id: String,
-    val created_at_diff: String
-)
