@@ -2,6 +2,15 @@ package it.dogior.hadEnough
 
 import com.fasterxml.jackson.annotation.JsonProperty
 
+
+data class LoadData(
+    val url: String,
+    val type: String,
+    val tmdbId: Int? = null,
+    val seasonNumber: Int? = null,
+    val episodeNumber: Int? = null,
+)
+
 data class Section(
     @JsonProperty("name") val name: String,
     @JsonProperty("label") val label: String,
@@ -11,7 +20,7 @@ data class Section(
 data class SearchResponse(
     @JsonProperty("current_page") val currentPage: Int,
     @JsonProperty("data") val data: List<Title>,
-    @JsonProperty("last_page") val lastPge: Int
+    @JsonProperty("last_page") val lastPage: Int
 )
 
 data class Title(
