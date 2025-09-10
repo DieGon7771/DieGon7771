@@ -3,11 +3,11 @@ package it.dogior.hadEnough
 import android.util.Log
 import com.lagradost.cloudstream3.SubtitleFile
 import com.lagradost.cloudstream3.app
+import com.lagradost.cloudstream3.network.CloudflareKiller
 import com.lagradost.cloudstream3.utils.ExtractorApi
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import com.lagradost.cloudstream3.utils.newExtractorLink
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.json.JSONObject
 
 class VixCloudExtractor : ExtractorApi() {
@@ -15,6 +15,13 @@ class VixCloudExtractor : ExtractorApi() {
     override val name = "VixCloud"
     override val requiresReferer = false
     val TAG = "VixCloudExtractor"
+    private var referer: String? = null
+    private val h = mutableMapOf(
+        "Accept" to "*/*",
+        "Connection" to "keep-alive",
+        "Cache-Control" to "no-cache",
+        "user-agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:131.0) Gecko/20100101 Firefox/131.0",
+    )
 
     override suspend fun getUrl(
         url: String,
@@ -22,18 +29,19 @@ class VixCloudExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
+        this.referer = referer
         Log.d(TAG, "REFERER: $referer  URL: $url")
         val playlistUrl = getPlaylistLink(url)
         Log.w(TAG, "FINAL URL: $playlistUrl")
 
         callback.invoke(
             newExtractorLink(
-                source = "Vixcloud",
-                name = "Streaming Community",
+                source = "VixCloud",
+                name = "Streaming Community - VixCloud",
                 url = playlistUrl,
                 type = ExtractorLinkType.M3U8
             ) {
-                this.referer = referer!!
+                this.headers = h
             }
         )
 
@@ -68,18 +76,12 @@ class VixCloudExtractor : ExtractorApi() {
     }
 
     private suspend fun getScript(url: String): JSONObject {
-        Log.d(TAG, "url: $url")
-        val headers = mutableMapOf(
-            "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-            "Host" to url.toHttpUrl().host,
-            "Referer" to mainUrl,
-            "Sec-Fetch-Dest" to "iframe",
-            "Sec-Fetch-Mode" to "navigate",
-            "Sec-Fetch-Site" to "cross-site",
-            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:131.0) Gecko/20100101 Firefox/131.0",
-        )
+        Log.d(TAG, "Item url: $url")
 
-        val iframe = app.get(url, headers = headers).document
+        val iframe = app.get(url, headers = h, interceptor = CloudflareKiller()).document
+        Log.d(TAG, iframe.toString())
+
+//        Log.d(TAG, iframe.document.toString())
         val scripts = iframe.select("script")
         val script =
             scripts.find { it.data().contains("masterPlaylist") }!!.data().replace("\n", "\t")
