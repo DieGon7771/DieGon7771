@@ -12,7 +12,7 @@ import com.lagradost.cloudstream3.utils.newExtractorLink
 
 class DroploadExtractor : ExtractorApi() {
     override var name = "Dropload"
-    override var mainUrl = "https://dropload.io"
+    override var mainUrl = "https://dropload.tv"
     override val requiresReferer = false
 
     override suspend fun getUrl(
@@ -79,4 +79,3 @@ class DroploadExtractor : ExtractorApi() {
         }
     }
 }
-
