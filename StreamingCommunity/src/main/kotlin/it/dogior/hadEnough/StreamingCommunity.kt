@@ -58,6 +58,7 @@ class StreamingCommunity : MainAPI() {
         "$mainUrl/browse/top10" to "Top 10 di oggi",
         "$mainUrl/browse/trending" to "I Titoli Del Momento",
         "$mainUrl/browse/latest" to "Aggiunti di Recente",
+        "$mainUrl/browse/upcoming" to "In Arrivo...",
         "$mainUrl/browse/genre?g=Animation" to "Animazione",
         "$mainUrl/browse/genre?g=Adventure" to "Avventura",
         "$mainUrl/browse/genre?g=Action" to "Azione",
