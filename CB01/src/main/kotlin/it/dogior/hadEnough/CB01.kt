@@ -167,13 +167,14 @@ class CB01 : MainAPI() {
             app.get(actualUrl, headers = mapOf("Host" to actualUrl.toHttpUrl().host)).document
         val mainContainer = document.selectFirst(".sequex-main-container")!!
         val poster =
-            mainContainer.selectFirst(".sequex-featured-img")!!.selectFirst("img")!!.attr("src")
+            mainContainer.selectFirst("img.responsive-locandina")?.attr("src")
         val banner = mainContainer.selectFirst("#sequex-page-title-img")?.attr("data-img")
         val title = mainContainer.selectFirst("h1")?.text()!!
 //        val actionTable = mainContainer.selectFirst("table.cbtable:nth-child(5)")
         val isMovie = !actualUrl.contains("serietv")
         val type = if (isMovie) TvType.Movie else TvType.TvSeries
         return if (isMovie) {
+            val year = Regex("\\d{4}").find(title)?.value?.toIntOrNull()
             val plot = mainContainer.selectFirst(".ignore-css > p:nth-child(2)")?.text()
                 ?.replace("+Info »", "")
             val tags =
@@ -205,6 +206,7 @@ class CB01 : MainAPI() {
                     if (it.contains("DURATA")) null else it.trim()
                 }
                 this.duration = runtime
+                this.year = year
             }
         } else {
             val description = mainContainer.selectFirst(".ignore-css > p:nth-child(1)")?.text()
@@ -323,6 +325,7 @@ class CB01 : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit,
     ): Boolean {
+//        Log.d("CB01", "Data: " + data)
         if (data == "null") return false
         var links = parseJson<List<String>>(data)
         links = links.filter { it.contains("uprot.net") || it.contains("stayonline") }
