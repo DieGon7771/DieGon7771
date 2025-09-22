@@ -96,7 +96,7 @@ private suspend fun <T> throttled(block: suspend () -> T): T {
             delay(minIntervalMs - elapsed)
         }
         val result = block()
-lastRequestTime.set(System.currentTimeMillis())
+        lastRequestTime.set(System.currentTimeMillis())
         result
     }
 }
