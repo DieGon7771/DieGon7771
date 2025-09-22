@@ -31,10 +31,7 @@ import com.lagradost.cloudstream3.utils.Qualities
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.delay
-import java.util.concurrent.atomic.AtomicLong
 
 
 class Torrentio : TmdbProvider() {
@@ -55,6 +52,25 @@ class Torrentio : TmdbProvider() {
     private val today = getDate()
     private val tvFilters =
         "&language=it-IT&watch_region=IT&with_watch_providers=359|222|524|283|39|8|337|119|350"
+
+    // ----- THROTTLING SEMPLICE -----
+    private var nextRequestTime = 0L
+    private const val REQUEST_DELAY = 750L // 0.75 secondi tra le richieste
+
+    private suspend fun <T> throttled(block: suspend () -> T): T {
+        val currentTime = System.currentTimeMillis()
+        
+        // Se è troppo presto, aspetta
+        if (currentTime < nextRequestTime) {
+            delay(nextRequestTime - currentTime)
+        }
+        
+        // Esegui la richiesta e imposta il prossimo tempo consentito
+        val result = block()
+        nextRequestTime = System.currentTimeMillis() + REQUEST_DELAY
+        return result
+    }
+    // ----------------------
 
     override val mainPage = mainPageOf(
         "$tmdbAPI/trending/all/day?language=it-IT" to "Di Tendenza",
@@ -81,29 +97,9 @@ class Torrentio : TmdbProvider() {
         val calendar = Calendar.getInstance()
         val today = formatter.format(calendar.time)
         return today
-}
-
-// ----- THROTTLING -----
-private val mutex = Mutex()
-private var lastRequestTime = AtomicLong(0)
-private val minIntervalMs = 750L // ritardo
-
-private suspend fun <T> throttled(block: suspend () -> T): T {
-    return mutex.withLock {
-        val now = System.currentTimeMillis()
-        val elapsed = now - lastRequestTime.get()
-        if (elapsed < minIntervalMs) {
-            delay(minIntervalMs - elapsed)
-        }
-        val result = block()
-        lastRequestTime.set(System.currentTimeMillis())
-        result
     }
-}
-// ----------------------
 
-override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-    return throttled {
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val resp = app.get("${request.data}&page=$page", headers = authHeaders).body.string()
         val parsedResponse = parseJson<Results>(resp).results?.mapNotNull { media ->
             val type = if (request.data.contains("tv")) "tv" else "movie"
@@ -111,16 +107,18 @@ override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageR
         }?.toMutableList()
 
         val home = parsedResponse ?: throw ErrorLoadingException("Invalid Json reponse")
-        newHomePageResponse(request.name, home)
+        return newHomePageResponse(request.name, home)
     }
 
 
     override suspend fun search(query: String): List<SearchResponse>? {
-        return app.get(
-            "$tmdbAPI/search/multi?language=it-IT&query=$query&page=1&include_adult=true",
-            headers = authHeaders
-        ).parsedSafe<Results>()?.results?.mapNotNull { media ->
-            media.toSearchResponse()
+        return throttled {
+            app.get(
+                "$tmdbAPI/search/multi?language=it-IT&query=$query&page=1&include_adult=true",
+                headers = authHeaders
+            ).parsedSafe<Results>()?.results?.mapNotNull { media ->
+                media.toSearchResponse()
+            }
         }
     }
 
@@ -134,8 +132,9 @@ override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageR
         } else {
             "$tmdbAPI/tv/${data.id}?language=it-IT&append_to_response=$append"
         }
-        val res = app.get(resUrl, headers = authHeaders).parsedSafe<MediaDetail>()
-            ?: throw ErrorLoadingException("Invalid Json Response")
+        val res = throttled {
+            app.get(resUrl, headers = authHeaders).parsedSafe<MediaDetail>()
+        } ?: throw ErrorLoadingException("Invalid Json Response")
 //        Log.d("Torrentio", res.toJson())
 
         val title = res.title ?: res.name ?: return null
@@ -212,29 +211,31 @@ override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageR
 
     private suspend fun getEpisodes(showData: MediaDetail, id: Int?): List<Episode> {
         val episodes = showData.seasons?.mapNotNull { season ->
-            app.get(
-                "$tmdbAPI/tv/${showData.id}/season/${season.seasonNumber}",
-                headers = authHeaders
-            ).parsedSafe<MediaDetailEpisodes>()?.episodes?.map { ep ->
-                newEpisode(
-                    LinkData(
-                        id,
-                        type = "tv",
-                        season = ep.seasonNumber,
-                        episode = ep.episodeNumber,
-                        epid = ep.id,
-                        title = showData.title,
-                        year = season.airDate?.split("-")?.first()?.toIntOrNull(),
-                        epsTitle = ep.name,
-                        date = season.airDate,
-                        imdbId = showData.imdbId ?: showData.externalIds?.imdbId
-                    ).toJson()
-                ) {
-                    this.name = ep.name
-                    this.season = ep.seasonNumber
-                    this.episode = ep.episodeNumber
-                    this.posterUrl = getImageUrl(ep.stillPath)
-                    this.description = ep.overview
+            throttled {
+                app.get(
+                    "$tmdbAPI/tv/${showData.id}/season/${season.seasonNumber}",
+                    headers = authHeaders
+                ).parsedSafe<MediaDetailEpisodes>()?.episodes?.map { ep ->
+                    newEpisode(
+                        LinkData(
+                            id,
+                            type = "tv",
+                            season = ep.seasonNumber,
+                            episode = ep.episodeNumber,
+                            epid = ep.id,
+                            title = showData.title,
+                            year = season.airDate?.split("-")?.first()?.toIntOrNull(),
+                            epsTitle = ep.name,
+                            date = season.airDate,
+                            imdbId = showData.imdbId ?: showData.externalIds?.imdbId
+                        ).toJson()
+                    ) {
+                        this.name = ep.name
+                        this.season = ep.seasonNumber
+                        this.episode = ep.episodeNumber
+                        this.posterUrl = getImageUrl(ep.stillPath)
+                        this.description = ep.overview
+                    }
                 }
             }
         }?.flatten()
@@ -258,7 +259,9 @@ override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageR
             "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
             "User-Agent" to "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
         )
-        val res = app.get(url, headers = headers, timeout = 100L)
+        val res = throttled {
+            app.get(url, headers = headers, timeout = 100L)
+        }
         val body = res.body.string()
         val response = parseJson<TorrentioResponse>(body)
 
@@ -292,7 +295,9 @@ override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageR
     }
 
     private suspend fun generateMagnetLink(url: String, hash: String?): String {
-        val response = app.get(url)
+        val response = throttled {
+            app.get(url)
+        }
 
         val trackerList = response.text.trim().split("\n") // Assuming each tracker is on a new line
 
