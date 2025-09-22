@@ -77,9 +77,29 @@ class Torrentio : TmdbProvider() {
         val calendar = Calendar.getInstance()
         val today = formatter.format(calendar.time)
         return today
-    }
+}
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+// ----- THROTTLING -----
+private val mutex = Mutex()
+private var lastRequestTime = AtomicLong(0)
+private val minIntervalMs = 750L // ritardo
+
+private suspend fun <T> throttled(block: suspend () -> T): T {
+    mutex.withLock {
+        val now = System.currentTimeMillis()
+        val elapsed = now - lastRequestTime.get()
+        if (elapsed < minIntervalMs) {
+            delay(minIntervalMs - elapsed)
+        }
+        val result = block()
+lastRequestTime.set(System.currentTimeMillis())
+        return result
+    }
+}
+// ----------------------
+
+override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    return throttled {
         val resp = app.get("${request.data}&page=$page", headers = authHeaders).body.string()
         val parsedResponse = parseJson<Results>(resp).results?.mapNotNull { media ->
             val type = if (request.data.contains("tv")) "tv" else "movie"
@@ -87,7 +107,7 @@ class Torrentio : TmdbProvider() {
         }?.toMutableList()
 
         val home = parsedResponse ?: throw ErrorLoadingException("Invalid Json reponse")
-        return newHomePageResponse(request.name, home)
+        newHomePageResponse(request.name, home)
     }
 
 
