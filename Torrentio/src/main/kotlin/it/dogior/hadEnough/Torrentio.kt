@@ -31,6 +31,10 @@ import com.lagradost.cloudstream3.utils.Qualities
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.delay
+import java.util.concurrent.atomic.AtomicLong
 
 
 class Torrentio : TmdbProvider() {
@@ -85,7 +89,7 @@ private var lastRequestTime = AtomicLong(0)
 private val minIntervalMs = 750L // ritardo
 
 private suspend fun <T> throttled(block: suspend () -> T): T {
-    mutex.withLock {
+    return mutex.withLock {
         val now = System.currentTimeMillis()
         val elapsed = now - lastRequestTime.get()
         if (elapsed < minIntervalMs) {
@@ -93,7 +97,7 @@ private suspend fun <T> throttled(block: suspend () -> T): T {
         }
         val result = block()
 lastRequestTime.set(System.currentTimeMillis())
-        return result
+        result
     }
 }
 // ----------------------
