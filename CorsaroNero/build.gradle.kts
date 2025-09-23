@@ -24,7 +24,7 @@ cloudstream {
     requiresResources = true
     language = "it"
 
-    iconUrl = "https://ilcorsaronero.link/assets/images/logo-b01e50fc691111643e95a98975b49be1.svg"
+    iconUrl = "https://ilcorsaronero.link/favicon.ico"
 }
 
 android {
