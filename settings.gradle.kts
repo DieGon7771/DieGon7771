@@ -11,7 +11,7 @@ include(
     "Arte",
     "CalcioStreaming",
     "CB01",
-//    "CorsaroNero",
+    "CorsaroNero",
 //    "DaddyLive",
     "Huhu",
 //    "OnlineSerieTV",
