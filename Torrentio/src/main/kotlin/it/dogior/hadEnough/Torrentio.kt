@@ -18,6 +18,7 @@ import com.lagradost.cloudstream3.metaproviders.TmdbProvider
 import com.lagradost.cloudstream3.newHomePageResponse
 import com.lagradost.cloudstream3.newMovieLoadResponse
 import com.lagradost.cloudstream3.newMovieSearchResponse
+import com.lagradost.cloudstream3.newTvSeriesLoadResponse
 import com.lagradost.cloudstream3.toRatingInt
 import com.lagradost.cloudstream3.utils.AppUtils.toJson
 import com.lagradost.cloudstream3.utils.ExtractorLink
@@ -26,31 +27,28 @@ import com.lagradost.cloudstream3.utils.newExtractorLink
 import com.lagradost.cloudstream3.utils.AppUtils.parseJson
 import com.lagradost.cloudstream3.Episode
 import com.lagradost.cloudstream3.newEpisode
-import com.lagradost.cloudstream3.newTvSeriesLoadResponse
 import com.lagradost.cloudstream3.utils.Qualities
+import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
-import kotlinx.coroutines.delay
 
 class Torrentio : TmdbProvider() {
-    private val torrentioUrl = "https://torrentio.strem.fun"
-    override var mainUrl =
-        "$torrentioUrl/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,ilcorsaronero,magnetdl|sort=seeders|language=italian"
+    override var mainUrl = "https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,ilcorsaronero,magnetdl|sort=seeders|language=italian"
     override var name = "Torrentio"
     override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries, TvType.Torrent)
     override var lang = "it"
     override val hasMainPage = true
+    
+    private val torrentioUrl = "https://torrentio.strem.fun"
     private val tmdbAPI = "https://api.themoviedb.org/3"
     private val TRACKER_LIST_URL = "https://newtrackon.com/api/stable"
 
     private val apiKey = BuildConfig.TMDB_API
-    private val authHeaders =
-        mapOf("Authorization" to "Bearer $apiKey")
+    private val authHeaders = mapOf("Authorization" to "Bearer $apiKey")
 
     private val today = getDate()
-    private val tvFilters =
-        "&language=it-IT&watch_region=IT&with_watch_providers=359|222|524|283|39|8|337|119|350"
+    private val tvFilters = "&language=it-IT&watch_region=IT&with_watch_providers=359|222|524|283|39|8|337|119|350"
 
     // ----- THROTTLING SEMPLICE -----
     private var nextRequestTime = 0L
@@ -59,13 +57,11 @@ class Torrentio : TmdbProvider() {
     private suspend fun <T> throttled(block: suspend () -> T): T {
         val currentTime = System.currentTimeMillis()
         
-        // Se è troppo presto, aspetta
         if (currentTime < nextRequestTime) {
             val waitTime = nextRequestTime - currentTime
             delay(waitTime)
         }
         
-        // Esegui la richiesta e imposta il prossimo tempo consentito
         val result = block()
         nextRequestTime = System.currentTimeMillis() + REQUEST_DELAY
         return result
@@ -95,8 +91,7 @@ class Torrentio : TmdbProvider() {
     private fun getDate(): String {
         val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val calendar = Calendar.getInstance()
-        val today = formatter.format(calendar.time)
-        return today
+        return formatter.format(calendar.time)
     }
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
@@ -153,8 +148,7 @@ class Torrentio : TmdbProvider() {
             )
         } ?: emptyList()
 
-        val recommendations =
-            res.recommendations?.results?.mapNotNull { media -> media.toSearchResponse() }
+        val recommendations = res.recommendations?.results?.mapNotNull { media -> media.toSearchResponse() }
 
         val trailer = res.videos?.results?.filter { it.type == "Trailer" }
             ?.map { "https://www.youtube.com/watch?v=${it.key}" }?.reversed().orEmpty()
@@ -171,8 +165,7 @@ class Torrentio : TmdbProvider() {
                     title = title,
                     year = year,
                     imdbId = res.imdbId,
-                    airedDate = res.releaseDate
-                        ?: res.firstAirDate,
+                    airedDate = res.releaseDate ?: res.firstAirDate,
                 ).toJson(),
             ) {
                 this.posterUrl = poster
@@ -257,9 +250,9 @@ class Torrentio : TmdbProvider() {
         }
         val headers = mapOf(
             "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-            "User-Agent" to "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+            "User-Agent" to "Mozilla/5.0 (X11; Linux x_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
         )
-        // NOTA: Le richieste a Torrentio NON usano throttling (solo TMDB)
+        
         val res = app.get(url, headers = headers, timeout = 100L)
         val body = res.body.string()
         val response = parseJson<TorrentioResponse>(body)
@@ -271,9 +264,7 @@ class Torrentio : TmdbProvider() {
                         .map { match -> "[${match.groupValues[1]}]" }
                         .joinToString(" | ")
                     val seeder = "👤\\s*(\\d+)".toRegex().find(title)?.groupValues?.get(1) ?: "0"
-                    val provider =
-                        "⚙️\\s*([^\\\\]+)".toRegex().find(title)?.groupValues?.get(1)?.trim()
-                            ?: "Unknown"
+                    val provider = "⚙️\\s*([^\\\\]+)".toRegex().find(title)?.groupValues?.get(1)?.trim() ?: "Unknown"
                     "Torrentio | $tags | Seeder: $seeder | Provider: $provider".trim()
                 }
             val magnet = generateMagnetLink(TRACKER_LIST_URL, stream.infoHash)
@@ -294,9 +285,7 @@ class Torrentio : TmdbProvider() {
     }
 
     private suspend fun generateMagnetLink(url: String, hash: String?): String {
-        // NOTA: Le richieste ai tracker NON usano throttling (solo TMDB)
         val response = app.get(url)
-
         val trackerList = response.text.trim().split("\n")
 
         return buildString {
@@ -331,3 +320,74 @@ class Torrentio : TmdbProvider() {
         }
     }
 }
+
+// Le classi data devono essere definite fuori dalla classe principale
+data class Results(val results: List<Media>?)
+data class Media(
+    val id: Int,
+    val title: String?,
+    val name: String?,
+    val originalTitle: String?,
+    val mediaType: String?,
+    val posterPath: String?
+)
+
+data class Data(
+    val id: Int,
+    val type: String
+)
+
+data class MediaDetail(
+    val id: Int,
+    val title: String?,
+    val name: String?,
+    val overview: String?,
+    val posterPath: String?,
+    val backdropPath: String?,
+    val releaseDate: String?,
+    val firstAirDate: String?,
+    val voteAverage: Double?,
+    val runtime: Int?,
+    val genres: List<Genre>?,
+    val credits: Credits?,
+    val recommendations: Recommendations?,
+    val videos: Videos?,
+    val imdbId: String?,
+    val externalIds: ExternalIds?,
+    val seasons: List<Season>?
+)
+
+data class Genre(val name: String?)
+data class Credits(val cast: List<Cast>?)
+data class Cast(val name: String?, val originalName: String?, val character: String?, val profilePath: String?)
+data class Recommendations(val results: List<Media>?)
+data class Videos(val results: List<Video>?)
+data class Video(val key: String?, val type: String?)
+data class ExternalIds(val imdbId: String?)
+data class Season(val seasonNumber: Int, val airDate: String?)
+data class MediaDetailEpisodes(val episodes: List<EpisodeDetail>?)
+data class EpisodeDetail(
+    val id: Int,
+    val name: String?,
+    val seasonNumber: Int,
+    val episodeNumber: Int,
+    val overview: String?,
+    val stillPath: String?
+)
+
+data class LinkData(
+    val id: Int?,
+    val type: String,
+    val title: String? = null,
+    val year: Int? = null,
+    val imdbId: String? = null,
+    val airedDate: String? = null,
+    val season: Int? = null,
+    val episode: Int? = null,
+    val epid: Int? = null,
+    val epsTitle: String? = null,
+    val date: String? = null
+)
+
+data class TorrentioResponse(val streams: List<Stream>)
+data class Stream(val title: String?, val name: String?, val infoHash: String?)
