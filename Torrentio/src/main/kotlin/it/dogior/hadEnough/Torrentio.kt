@@ -31,7 +31,7 @@ import com.lagradost.cloudstream3.utils.Qualities
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
-
+import kotlinx.coroutines.delay
 
 class Torrentio : TmdbProvider() {
     private val torrentioUrl = "https://torrentio.strem.fun"
@@ -51,6 +51,26 @@ class Torrentio : TmdbProvider() {
     private val today = getDate()
     private val tvFilters =
         "&language=it-IT&watch_region=IT&with_watch_providers=359|222|524|283|39|8|337|119|350"
+
+    // ----- THROTTLING SEMPLICE -----
+    private var nextRequestTime = 0L
+    private const val REQUEST_DELAY = 750L // 0.75 secondi tra le richieste TMDB
+
+    private suspend fun <T> throttled(block: suspend () -> T): T {
+        val currentTime = System.currentTimeMillis()
+        
+        // Se è troppo presto, aspetta
+        if (currentTime < nextRequestTime) {
+            val waitTime = nextRequestTime - currentTime
+            delay(waitTime)
+        }
+        
+        // Esegui la richiesta e imposta il prossimo tempo consentito
+        val result = block()
+        nextRequestTime = System.currentTimeMillis() + REQUEST_DELAY
+        return result
+    }
+    // ----------------------
 
     override val mainPage = mainPageOf(
         "$tmdbAPI/trending/all/day?language=it-IT" to "Di Tendenza",
@@ -80,7 +100,9 @@ class Torrentio : TmdbProvider() {
     }
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val resp = app.get("${request.data}&page=$page", headers = authHeaders).body.string()
+        val resp = throttled {
+            app.get("${request.data}&page=$page", headers = authHeaders).body.string()
+        }
         val parsedResponse = parseJson<Results>(resp).results?.mapNotNull { media ->
             val type = if (request.data.contains("tv")) "tv" else "movie"
             media.toSearchResponse(type = type)
@@ -90,13 +112,14 @@ class Torrentio : TmdbProvider() {
         return newHomePageResponse(request.name, home)
     }
 
-
     override suspend fun search(query: String): List<SearchResponse>? {
-        return app.get(
-            "$tmdbAPI/search/multi?language=it-IT&query=$query&page=1&include_adult=true",
-            headers = authHeaders
-        ).parsedSafe<Results>()?.results?.mapNotNull { media ->
-            media.toSearchResponse()
+        return throttled {
+            app.get(
+                "$tmdbAPI/search/multi?language=it-IT&query=$query&page=1&include_adult=true",
+                headers = authHeaders
+            ).parsedSafe<Results>()?.results?.mapNotNull { media ->
+                media.toSearchResponse()
+            }
         }
     }
 
@@ -110,9 +133,9 @@ class Torrentio : TmdbProvider() {
         } else {
             "$tmdbAPI/tv/${data.id}?language=it-IT&append_to_response=$append"
         }
-        val res = app.get(resUrl, headers = authHeaders).parsedSafe<MediaDetail>()
-            ?: throw ErrorLoadingException("Invalid Json Response")
-//        Log.d("Torrentio", res.toJson())
+        val res = throttled {
+            app.get(resUrl, headers = authHeaders).parsedSafe<MediaDetail>()
+        } ?: throw ErrorLoadingException("Invalid Json Response")
 
         val title = res.title ?: res.name ?: return null
         val poster = getImageUrl(res.posterPath, getOriginal = true)
@@ -188,29 +211,31 @@ class Torrentio : TmdbProvider() {
 
     private suspend fun getEpisodes(showData: MediaDetail, id: Int?): List<Episode> {
         val episodes = showData.seasons?.mapNotNull { season ->
-            app.get(
-                "$tmdbAPI/tv/${showData.id}/season/${season.seasonNumber}",
-                headers = authHeaders
-            ).parsedSafe<MediaDetailEpisodes>()?.episodes?.map { ep ->
-                newEpisode(
-                    LinkData(
-                        id,
-                        type = "tv",
-                        season = ep.seasonNumber,
-                        episode = ep.episodeNumber,
-                        epid = ep.id,
-                        title = showData.title,
-                        year = season.airDate?.split("-")?.first()?.toIntOrNull(),
-                        epsTitle = ep.name,
-                        date = season.airDate,
-                        imdbId = showData.imdbId ?: showData.externalIds?.imdbId
-                    ).toJson()
-                ) {
-                    this.name = ep.name
-                    this.season = ep.seasonNumber
-                    this.episode = ep.episodeNumber
-                    this.posterUrl = getImageUrl(ep.stillPath)
-                    this.description = ep.overview
+            throttled {
+                app.get(
+                    "$tmdbAPI/tv/${showData.id}/season/${season.seasonNumber}",
+                    headers = authHeaders
+                ).parsedSafe<MediaDetailEpisodes>()?.episodes?.map { ep ->
+                    newEpisode(
+                        LinkData(
+                            id,
+                            type = "tv",
+                            season = ep.seasonNumber,
+                            episode = ep.episodeNumber,
+                            epid = ep.id,
+                            title = showData.title,
+                            year = season.airDate?.split("-")?.first()?.toIntOrNull(),
+                            epsTitle = ep.name,
+                            date = season.airDate,
+                            imdbId = showData.imdbId ?: showData.externalIds?.imdbId
+                        ).toJson()
+                    ) {
+                        this.name = ep.name
+                        this.season = ep.seasonNumber
+                        this.episode = ep.episodeNumber
+                        this.posterUrl = getImageUrl(ep.stillPath)
+                        this.description = ep.overview
+                    }
                 }
             }
         }?.flatten()
@@ -234,6 +259,7 @@ class Torrentio : TmdbProvider() {
             "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
             "User-Agent" to "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
         )
+        // NOTA: Le richieste a Torrentio NON usano throttling (solo TMDB)
         val res = app.get(url, headers = headers, timeout = 100L)
         val body = res.body.string()
         val response = parseJson<TorrentioResponse>(body)
@@ -268,11 +294,11 @@ class Torrentio : TmdbProvider() {
     }
 
     private suspend fun generateMagnetLink(url: String, hash: String?): String {
+        // NOTA: Le richieste ai tracker NON usano throttling (solo TMDB)
         val response = app.get(url)
 
-        val trackerList = response.text.trim().split("\n") // Assuming each tracker is on a new line
+        val trackerList = response.text.trim().split("\n")
 
-        // Build the magnet link
         return buildString {
             append("magnet:?xt=urn:btih:$hash")
             trackerList.forEach { tracker ->
