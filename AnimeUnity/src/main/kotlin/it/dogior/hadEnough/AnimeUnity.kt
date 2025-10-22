@@ -320,7 +320,7 @@ class AnimeUnity : MainAPI() {
                 this.backgroundPosterUrl = getBanner(it)
             }
             this.year = anime.date.toInt()
-            addRating(anime.score)
+            addScore(anime.score)
 
             addDuration(anime.episodesLength.toString() + " minuti")
             val dub = if (anime.dub == 1) DubStatus.Dubbed else DubStatus.Subbed
