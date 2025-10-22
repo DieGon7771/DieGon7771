@@ -101,7 +101,18 @@ class Torrentio : TmdbProvider() {
     }
 
     override suspend fun load(url: String): LoadResponse? {
-        val data = parseJson<Data>(url)
+        // FIX: Gestisce sia JSON che URL TMDB
+        val data = if (url.startsWith("https://www.themoviedb.org/")) {
+            // Estrai l'ID e il tipo dall'URL
+            val segments = url.split("/")
+            val id = segments.last().toIntOrNull() ?: return null
+            val type = if (url.contains("/movie/")) "movie" else "tv"
+            Data(id = id, type = type)
+        } else {
+            // Altrimenti parsalo come JSON normale
+            parseJson<Data>(url)
+        }
+        
         val type = if (data.type == "movie") TvType.Movie else TvType.TvSeries
         val append = "alternative_titles,credits,external_ids,keywords,videos,recommendations"
 
