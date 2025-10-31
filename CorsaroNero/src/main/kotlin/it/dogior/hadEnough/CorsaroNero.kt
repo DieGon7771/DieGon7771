@@ -26,6 +26,9 @@ import com.lagradost.cloudstream3.utils.INFER_TYPE
 import com.lagradost.cloudstream3.utils.newExtractorLink
 import com.lagradost.cloudstream3.utils.AppUtils.parseJson
 import com.lagradost.cloudstream3.CommonActivity.showToast
+import com.lagradost.cloudstream3.LoadResponse.Companion.addScore
+import com.lagradost.cloudstream3.SearchResponseList
+import com.lagradost.cloudstream3.newSearchResponseList
 
 
 class CorsaroNero : TmdbProvider() {
@@ -73,14 +76,16 @@ class CorsaroNero : TmdbProvider() {
     }
 
 
-    override suspend fun search(query: String): List<SearchResponse>? {
-        return app.get(
-            "$tmdbAPI/search/movie?language=it-IT&query=$query&page=1&include_adult=true",
+    override suspend fun search(query: String, page: Int): SearchResponseList {
+        val response = app.get(
+            "$tmdbAPI/search/movie?language=it-IT&query=$query&page=$page&include_adult=true",
             headers = authHeaders
-        )
-            .parsedSafe<Results>()?.results?.mapNotNull { media ->
-                media.toSearchResponse()
-            }
+        ).parsedSafe<Results>()
+        val results = response?.results?.mapNotNull { media ->
+            media.toSearchResponse()
+        } ?: emptyList()
+        val hasNext = page < (response?.totalPages ?: 0)
+        return newSearchResponseList(results, hasNext)
     }
 
     override suspend fun load(url: String): LoadResponse? {
@@ -101,7 +106,7 @@ class CorsaroNero : TmdbProvider() {
         val bgPoster = getImageUrl(res.backdropPath, getOriginal = true)
         val releaseDate = res.releaseDate ?: res.firstAirDate
         val year = releaseDate?.split("-")?.first()?.toIntOrNull()
-        val rating = res.voteAverage.toString().toRatingInt()
+
         val genres = res.genres?.mapNotNull { it.name }
 
         val actors = res.credits?.cast?.mapNotNull { cast ->
@@ -138,7 +143,7 @@ class CorsaroNero : TmdbProvider() {
             this.plot = res.overview
             this.duration = res.runtime
             this.tags = genres
-            this.rating = rating
+            addScore(res.voteAverage.toString())
             this.recommendations = recommendations
             this.actors = actors
             addTrailer(trailer)
@@ -209,6 +214,7 @@ class CorsaroNero : TmdbProvider() {
 
     data class Results(
         @JsonProperty("results") val results: ArrayList<Media>? = arrayListOf(),
+        @JsonProperty("total_pages") val totalPages: Int = 0,
     )
 
     data class Media(
