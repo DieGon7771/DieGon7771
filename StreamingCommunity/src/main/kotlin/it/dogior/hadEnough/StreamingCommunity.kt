@@ -9,7 +9,7 @@ import com.lagradost.cloudstream3.HomePageResponse
 import com.lagradost.cloudstream3.LoadResponse
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import com.lagradost.cloudstream3.LoadResponse.Companion.addImdbId
-import com.lagradost.cloudstream3.LoadResponse.Companion.addRating
+import com.lagradost.cloudstream3.LoadResponse.Companion.addScore
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTMDbId
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 import com.lagradost.cloudstream3.MainAPI
@@ -58,7 +58,6 @@ class StreamingCommunity : MainAPI() {
         "$mainUrl/browse/top10" to "Top 10 di oggi",
         "$mainUrl/browse/trending" to "I Titoli Del Momento",
         "$mainUrl/browse/latest" to "Aggiunti di Recente",
-        "$mainUrl/browse/upcoming" to "In Arrivo...",
         "$mainUrl/browse/genre?g=Animation" to "Animazione",
         "$mainUrl/browse/genre?g=Adventure" to "Avventura",
         "$mainUrl/browse/genre?g=Action" to "Azione",
@@ -159,7 +158,7 @@ class StreamingCommunity : MainAPI() {
     }
 
 
-    /*override suspend fun search(query: String): List<SearchResponse> {
+    override suspend fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/search"
         val params = mapOf("q" to query)
 
@@ -170,7 +169,7 @@ class StreamingCommunity : MainAPI() {
         val result = parseJson<InertiaResponse>(response)
 
         return searchResponseBuilder(result.props.titles!!)
-    }*/
+    }
 
 
     override suspend fun search(query: String, page: Int): SearchResponseList {
@@ -236,7 +235,7 @@ class StreamingCommunity : MainAPI() {
                 title.imdbId?.let { this.addImdbId(it) }
                 title.tmdbId?.let { this.addTMDbId(it.toString()) }
                 this.addActors(title.mainActors?.map { it.name })
-                this.addRating(title.score)
+                this.addScore(title.score)
                 if (trailers != null) {
                     if (trailers.isNotEmpty()) {
                         addTrailer(trailers)
@@ -266,7 +265,7 @@ class StreamingCommunity : MainAPI() {
                 title.age?.let { this.contentRating = "$it+" }
                 this.recommendations = related?.titles?.let { searchResponseBuilder(it) }
                 this.addActors(title.mainActors?.map { it.name })
-                this.addRating(title.score)
+                this.addScore(title.score)
 
                 title.imdbId?.let { this.addImdbId(it) }
                 title.tmdbId?.let { this.addTMDbId(it.toString()) }
