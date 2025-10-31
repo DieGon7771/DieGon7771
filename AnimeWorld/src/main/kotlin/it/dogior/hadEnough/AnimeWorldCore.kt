@@ -10,12 +10,13 @@ import com.lagradost.cloudstream3.LoadResponse
 import com.lagradost.cloudstream3.LoadResponse.Companion.addAniListId
 import com.lagradost.cloudstream3.LoadResponse.Companion.addDuration
 import com.lagradost.cloudstream3.LoadResponse.Companion.addMalId
-import com.lagradost.cloudstream3.LoadResponse.Companion.addRating
+import com.lagradost.cloudstream3.LoadResponse.Companion.addScore
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 import com.lagradost.cloudstream3.MainAPI
 import com.lagradost.cloudstream3.MainPageRequest
 import com.lagradost.cloudstream3.NextAiring
 import com.lagradost.cloudstream3.SearchResponse
+import com.lagradost.cloudstream3.SearchResponseList
 import com.lagradost.cloudstream3.ShowStatus
 import com.lagradost.cloudstream3.SubtitleFile
 import com.lagradost.cloudstream3.TvType
@@ -30,6 +31,7 @@ import com.lagradost.cloudstream3.newAnimeLoadResponse
 import com.lagradost.cloudstream3.newAnimeSearchResponse
 import com.lagradost.cloudstream3.newEpisode
 import com.lagradost.cloudstream3.newHomePageResponse
+import com.lagradost.cloudstream3.newSearchResponseList
 import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.newExtractorLink
@@ -235,15 +237,24 @@ open class AnimeWorldCore(isSplit: Boolean = false) : MainAPI() {
         }
     }
 
-    override suspend fun search(query: String): List<SearchResponse> {
-        val document = request("$mainUrl/search?keyword=$query").document
+    override suspend fun search(query: String, page: Int): SearchResponseList {
+        val pageParam = if (page <= 1) "" else "&page=$page"
+        val document = request("$mainUrl/filter?sort=0&keyword=${query.trim()}$pageParam").document
 
         val list = document.select(".film-list > .item").map {
             it.toSearchResult(false)
         }
-        return list.filter { anime ->
+        val pagingWrapper = document.select("#paging-form").firstOrNull()
+        val totalPages = pagingWrapper?.select("span.total")?.text()?.toIntOrNull()
+        Log.d("BANANA", "$totalPages")
+        val hasNextPage = totalPages != null && (page + 1) < totalPages
+        Log.d("BANANA", "$hasNextPage")
+
+        val searchResponses = list.filter { anime ->
             filterByDubStatus(anime)
         }
+
+        return newSearchResponseList(searchResponses, hasNextPage)
     }
 
     private fun filterByDubStatus(anime: AnimeSearchResponse): Boolean {
@@ -352,7 +363,7 @@ open class AnimeWorldCore(isSplit: Boolean = false) : MainAPI() {
             this.recommendations = recommendations
             this.comingSoon = comingSoon
             if (episodes.isNotEmpty() && nextAiringUnix != null && episodes.last().episode != null) {
-                this.nextAiring = NextAiring(episodes.last().episode!! + 1, nextAiringUnix)
+                this.nextAiring = NextAiring(episodes.last().episode!! + 1, nextAiringUnix, null)
             }
         }
     }
