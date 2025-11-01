@@ -1,13 +1,13 @@
 import org.jetbrains.kotlin.konan.properties.Properties
 
 // use an integer for version numbers
-version = 4
+version = 5
 
 
 cloudstream {
     // All of these properties are optional, you can safely remove them
     description =
-        "Torrents from Torrentio"
+        "Torrent da Torrentio"
     authors = listOf("doGior")
 
     /**
