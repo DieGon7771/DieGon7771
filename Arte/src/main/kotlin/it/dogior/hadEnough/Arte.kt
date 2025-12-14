@@ -10,11 +10,12 @@ import com.lagradost.cloudstream3.LoadResponse
 import com.lagradost.cloudstream3.TvType
 import com.lagradost.cloudstream3.MainAPI
 import com.lagradost.cloudstream3.MainPageRequest
+import com.lagradost.cloudstream3.MovieSearchResponse
 import com.lagradost.cloudstream3.SearchResponse
 import com.lagradost.cloudstream3.SubtitleFile
+import com.lagradost.cloudstream3.TvSeriesSearchResponse
 import com.lagradost.cloudstream3.amap
 import com.lagradost.cloudstream3.fixUrl
-import com.lagradost.cloudstream3.mainPageOf
 import com.lagradost.cloudstream3.newEpisode
 import com.lagradost.cloudstream3.newHomePageResponse
 import com.lagradost.cloudstream3.newMovieLoadResponse
@@ -22,75 +23,45 @@ import com.lagradost.cloudstream3.newMovieSearchResponse
 import com.lagradost.cloudstream3.newTvSeriesLoadResponse
 import com.lagradost.cloudstream3.newTvSeriesSearchResponse
 import com.lagradost.cloudstream3.utils.AppUtils.parseJson
-import com.lagradost.cloudstream3.utils.AppUtils.toJson
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.INFER_TYPE
 import com.lagradost.cloudstream3.utils.newExtractorLink
 import org.jsoup.nodes.Document
-import org.jsoup.nodes.Element
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
 
 
-class Arte : MainAPI() {
+class Arte(language: String) : MainAPI() {
     override var mainUrl = "https://www.arte.tv"
     override var name = "Arte"
     override val supportedTypes = setOf(TvType.Documentary)
-    override var lang = "it"
+    override var lang = language
     override val hasMainPage = true
-
-    override val mainPage = mainPageOf(
-        "$mainUrl/it" to "Home",
-        "$mainUrl/it/search" to "Search"
-    )
-
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val response = app.get(request.data)
-        val document = response.document
-        val sections = document.select("div[data-testid=\"zl-slider\"]")
-        val searchResponses = sections.mapNotNull { section ->
-            val sectionName = section.selectFirst("h2")?.text() ?: ""
-            if (sectionName == "Cosa stai cercando?") return@mapNotNull null
-            val videos = section.select("div[data-testid=\"ts-tsItem\"]")
-            val searchResponses = videos.map { it.toSearchResponse() }
-            val isHorizontal = sectionName != "Imperdibili"
-            HomePageList(sectionName, searchResponses, isHorizontal)
+        val headers =
+            mapOf("Authorization" to "Bearer YTEwZWE3M2UxMTVmYmRjZmE0YTdmNjA4ZTI2NDczZDU3YjdjYmVmMmRmNGFjOTM3M2RhNTM5ZjIxYmI3NTc1Zg")
+        val response = app.get("https://api.arte.tv/api/emac/v4/$lang/tv/pages/HOME", headers = headers)
+        val jsonData = response.body.string()
+        val data = parseJson<Page>(jsonData)
+        val homePageLists = data.zones.mapNotNull { section ->
+            val isHorizontal = !section.displayOptions.template.contains("portrait")
+            val searchResponses = section.content.data.mapNotNull {
+                it.toSearchResponse(isHorizontal, ::fixUrl, ::newMovieSearchResponse, ::newTvSeriesSearchResponse)
+            }
+            if (searchResponses.isEmpty()) return@mapNotNull null
+            HomePageList(section.title, searchResponses, isHorizontalImages = isHorizontal)
         }
-        return newHomePageResponse(searchResponses, false)
-    }
 
-    private fun Element.toSearchResponse(): SearchResponse {
-        val name = this.select("h3").text()
-        val name2 =
-            this.select("a[data-testid=\"ts-tsItemLink\"]").text().removePrefix("Guarda ora ")
-        val poster = this.select("img").attr("srcset")
-            .substringAfterLast(",").substringBeforeLast(" ")
-        val link = fixUrl(this.select("a[data-testid=\"ts-tsItemLink\"]").attr("href"))
-        val title = name.ifEmpty { name2 }
-        return newMovieSearchResponse(title, link) {
-            posterUrl = poster
-        }
+        return newHomePageResponse(homePageLists, false)
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val url = "https://www.arte.tv/api/rproxy/emac/v4/it/web/pages/SEARCH/?page=1&query=$query"
+        val url = "https://www.arte.tv/api/rproxy/emac/v4/$lang/web/pages/SEARCH/?page=1&query=$query"
         val response = app.get(url).body.string()
         val data = parseJson<SearchApiResponse>(response)
-        val searchResponses = data.value.zones.first().content.data.map {
-            val type = if (it.programId.startsWith("RC-")) TvType.TvSeries else TvType.Movie
-            val title = it.title + " - " + it.subtitle
-            val link = fixUrl(it.url)
-            val image = it.image.url.replace("__SIZE__", "265x149")
-            if (type == TvType.Movie) {
-                newMovieSearchResponse(title, link) {
-                    posterUrl = image
-                }
-            } else {
-                newTvSeriesSearchResponse(title, link) {
-                    posterUrl = image
-                }
-            }
+        val searchResponses = data.value.zones.first().content.data.mapNotNull {
+            it.toSearchResponse(false, ::fixUrl, ::newMovieSearchResponse, ::newTvSeriesSearchResponse)
         }
 
         return searchResponses
@@ -237,27 +208,65 @@ class Arte : MainAPI() {
     )
 
     data class SearchApiResponse(
-        @JsonProperty("value") val value: Value2,
+        @JsonProperty("value") val value: Page,
     )
 
-    data class Value2(
+    data class Page(
         @JsonProperty("zones") val zones: List<Zones>,
     )
 
     data class Zones(
         @JsonProperty("content") val content: SearchContent,
+        @JsonProperty("displayOptions") val displayOptions: DisplayOptions,
+        @JsonProperty("title") val title: String
     )
 
     data class SearchContent(
-        @JsonProperty("data") val data: List<SearchData>,
+        @JsonProperty("data") val data: List<ApiData>,
     )
 
-    data class SearchData(
+    data class DisplayOptions(
+        @JsonProperty("template") val template: String
+    )
+
+    data class ApiData(
         @JsonProperty("mainImage") val image: ShowImage,
-        @JsonProperty("shortDescription") val description: String,
+//        @JsonProperty("shortDescription") val description: String,
         @JsonProperty("title") val title: String,
-        @JsonProperty("subtitle") val subtitle: String,
-        @JsonProperty("programId") val programId: String,
+        @JsonProperty("subtitle") val subtitle: String?,
+        @JsonProperty("programId") val programId: String?,
         @JsonProperty("url") val url: String,
+        @JsonProperty("kind") val kind: Kind,
+    ) {
+        fun toSearchResponse(
+            isHorizontal: Boolean,
+            fixUrl: (String) -> String,
+            newMovieSearchResponse: (String, String, TvType, Boolean, initializer: MovieSearchResponse.() -> Unit) -> MovieSearchResponse,
+            newTvSeriesSearchResponse: (String, String,TvType, Boolean, initializer: TvSeriesSearchResponse.() -> Unit) -> TvSeriesSearchResponse,
+        ): SearchResponse? {
+            if (this.kind.code == "EXTERNAL") return null
+            val type = if(this.kind.isCollection) TvType.TvSeries else TvType.Movie
+            val title = if (this.subtitle == null) this.title else {
+                this.title + " - " + this.subtitle
+            }
+            val link = fixUrl(this.url)
+            val imgSize = if (isHorizontal) "620x350" else "500x750"
+            val image = this.image.url.replace("__SIZE__", imgSize)
+            return if (type == TvType.Movie) {
+                newMovieSearchResponse(title, link, type, false) {
+                    posterUrl = image
+                }
+            } else {
+                newTvSeriesSearchResponse(title, link, type, false) {
+                    posterUrl = image
+                }
+            }
+        }
+    }
+
+    data class Kind(
+        @JsonProperty("code") val code: String,
+        @JsonProperty("label") val label: String,
+        @JsonProperty("isCollection") val isCollection: Boolean,
     )
 }
