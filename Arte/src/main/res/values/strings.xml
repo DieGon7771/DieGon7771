@@ -1,1 +1,5 @@
-p
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="header_tw">ARTE Settings</string>
+    <string name="lang_tw">Change language</string>
+</resources>
