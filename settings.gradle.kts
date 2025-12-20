@@ -8,7 +8,7 @@ include(
     "AltaDefinizione",
     "AnimeUnity",
     "AnimeWorld",
-//    "Arte",
+    "Arte",
     "CalcioStreaming",
     "CB01",
     "CorsaroNero",
