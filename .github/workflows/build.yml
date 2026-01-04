@@ -7,15 +7,15 @@ concurrency:
 
 on:
   workflow_dispatch:  # Allows manual triggering
-  push:
-    branches:
+ # push:
+   # branches:
       # choose your default branch
-      - master
-      - main
-    paths-ignore:
-      - '*.md'
-      - '*.png'
-      - '*.yml'
+     # - master
+     # - main
+   # paths-ignore:
+     # - '*.md'
+     # - '*.png'
+     # - '*.yml'
 
 jobs:
   build:
