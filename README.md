@@ -8,11 +8,10 @@ Fork di doGior: [doGorsHadEnough](https://github.com/doGior/doGiorsHadEnough)
 
 ## Installazione
 
-Vai in *Impostazioni* -> *Estensioni* -> *Aggiungi
-repository* e nel campo URL scrivi "https://raw.githubusercontent.com/DieGon7771/DieGon7771/builds/repo.json"
+Clicca sull'immagine oppure vai in *Impostazioni* -> *Estensioni* -> *Aggiungi
+repository* e nel campo URL scrivi "diegon7"
 
-se non funziona prova
-"https://pastebin.com/raw/qndZtL6D"
+[![Install](https://raw.githubusercontent.com/DieGon7771/DieGon7771/master/install.png)](https://diegon7771.github.io/Cs-site?r=cloudstreamrepo://pastebin.com/raw/qndZtL6D)
 
 ### Plugin
 Questi sono i plugin disponibili al momento
