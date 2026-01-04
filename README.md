@@ -11,6 +11,9 @@ Fork di doGior: [doGorsHadEnough](https://github.com/doGior/doGiorsHadEnough)
 Vai in *Impostazioni* -> *Estensioni* -> *Aggiungi
 repository* e nel campo URL scrivi "https://raw.githubusercontent.com/DieGon7771/DieGon7771/builds/repo.json"
 
+se non funziona prova
+"https://pastebin.com/raw/qndZtL6D"
+
 ### Plugin
 Questi sono i plugin disponibili al momento
 
