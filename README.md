@@ -8,13 +8,13 @@ Fork di doGior: [doGiorsHadEnough](https://github.com/doGior/doGiorsHadEnough)
 
 ## Installazione
 
-Clicca sull'immagine oppure vai in *Impostazioni* -> *Estensioni* -> *Aggiungi
-repository* e nel campo URL scrivi "diegon7"
-<div style="text-align: center;">
+Clicca sull'immagine per installare la repo oppure vai in *Impostazioni* -> *Estensioni* -> *Aggiungi repository* e nel campo URL scrivi "diegon7"
+
+<p align="center">
   <a href="https://diegon7771.github.io/Cs-site?r=cloudstreamrepo://pastebin.com/raw/qndZtL6D" target="_blank">
-    <img src="https://raw.githubusercontent.com/DieGon7771/DieGon7771/master/install.png" alt="Install" width="200px"/>
+    <img src="https://raw.githubusercontent.com/DieGon7771/DieGon7771/master/install.png" alt="Install" width="150px"/>
   </a>
-</div>
+</p>
 
 
 ### Plugin
@@ -26,7 +26,7 @@ Questi sono i plugin disponibili al momento
 | AnimeUnity         | Anime                               |    🇮🇹    |        ✅        | |
 | AnimeWorld         | Anime                               |    🇮🇹    |        ✅        |  |
 | Arte               | Documentari                         |    🇮🇹    |        ✅⚠️      | Potrebbe non funzionare a volte |
-| CB01               | Film, SerieTV                       |    🇮🇹    |        ❌        | Non fixabile al momento |
+| CB01               | Film, SerieTV                       |    🇮🇹    |        ✅        |  |
 | CalcioStreaming    | Sport                               |    🇮🇹    |        ✅        | |
 | Huhu               | TV Live                             |    🇺🇳    |        ✅        | |
 | StreamingCommunity | Film, SerieTV, Cartoni, Documentari |    🇮🇹🇬🇧 |        ✅        | ⚠️ Se non funziona, prova a cambiare DNS (es:dns.google.com) |
