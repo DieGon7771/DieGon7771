@@ -4,14 +4,18 @@ Ciao sono DieGon!
 
 ⚠️Questo progetto è un **fork di doGior**, con modifiche personali!⚠️
 
-Fork di doGior: [doGorsHadEnough](https://github.com/doGior/doGiorsHadEnough) 
+Fork di doGior: [doGiorsHadEnough](https://github.com/doGior/doGiorsHadEnough) 
 
 ## Installazione
 
 Clicca sull'immagine oppure vai in *Impostazioni* -> *Estensioni* -> *Aggiungi
 repository* e nel campo URL scrivi "diegon7"
+<div style="text-align: center;">
+  <a href="https://diegon7771.github.io/Cs-site?r=cloudstreamrepo://pastebin.com/raw/qndZtL6D" target="_blank">
+    <img src="https://raw.githubusercontent.com/DieGon7771/DieGon7771/master/install.png" alt="Install" width="200px"/>
+  </a>
+</div>
 
-[![Install](https://raw.githubusercontent.com/DieGon7771/DieGon7771/master/install.png)](https://diegon7771.github.io/Cs-site?r=cloudstreamrepo://pastebin.com/raw/qndZtL6D)
 
 ### Plugin
 Questi sono i plugin disponibili al momento
