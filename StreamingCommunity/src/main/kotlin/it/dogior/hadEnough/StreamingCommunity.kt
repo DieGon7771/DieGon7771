@@ -58,7 +58,6 @@ class StreamingCommunity : MainAPI() {
         "$mainUrl/browse/top10" to "Top 10 di oggi",
         "$mainUrl/browse/trending" to "I Titoli Del Momento",
         "$mainUrl/browse/latest" to "Aggiunti di Recente",
-        "$mainUrl/browse/upcoming" to "In Arrivo...",
         "$mainUrl/browse/genre?g=Animation" to "Animazione",
         "$mainUrl/browse/genre?g=Adventure" to "Avventura",
         "$mainUrl/browse/genre?g=Action" to "Azione",
@@ -111,76 +110,43 @@ class StreamingCommunity : MainAPI() {
 
     //Get the Homepage
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        // 1. Inizia con una lista vuota in caso di errori
-        var titlesList = emptyList<SearchResponse>()
-        var hasNextPage = false
+        var url = mainUrl.substringBeforeLast("/") + "/api" +
+                request.data.substringAfter(mainUrl)
+        val params = mutableMapOf("lang" to "it")
 
-        try {
-            var url = mainUrl.substringBeforeLast("/") + "/api" +
-                    request.data.substringAfter(mainUrl)
-            val params = mutableMapOf("lang" to "it")
-
-            val section = request.data.substringAfterLast("/")
-            when (section) {
-                "trending", "latest", "top10" -> {
-                    // Logica esistente
-                }
-                else -> {
-                    val genere = url.substringAfterLast('=')
-                    url = url.substringBeforeLast('?')
-                    params["g"] = genere
-                }
+        val section = request.data.substringAfterLast("/")
+        when (section) {
+            "trending" -> {
+//                Log.d(TAG, "TRENDING")
             }
 
-            if (page > 0) {
-                params["offset"] = ((page - 1) * 60).toString()
+            "latest" -> {
+//                Log.d(TAG, "LATEST")
             }
 
-            // 2. Controlla lo stato della risposta HTTP PRIMA di parsare JSON
-            val response = app.get(url, params = params)
-            
-            if (!response.isSuccessful) {
-                // Se la risposta non è 2xx (200, 201, etc.)
-                Log.d(TAG, "HTTP Error ${response.code}: ${response.message} - URL: $url")
-                return newHomePageResponse(
-                    HomePageList(
-                        name = request.name,
-                        list = emptyList(),
-                        isHorizontalImages = false
-                    ), false
-                )
+            "top10" -> {
+//                Log.d(TAG, "TOP10")
             }
 
-            val responseString = response.text
-            
-            // 3. Controlla se la risposta contiene errori prima di parsare
-            if (responseString.contains("error code:") || 
-                responseString.contains("502") || 
-                responseString.contains("Bad Gateway") ||
-                responseString.isBlank()) {
-                Log.d(TAG, "API returned error response: ${responseString.take(100)}...")
-                return newHomePageResponse(
-                    HomePageList(
-                        name = request.name,
-                        list = emptyList(),
-                        isHorizontalImages = false
-                    ), false
-                )
+            else -> {
+                val genere = url.substringAfterLast('=')
+                url = url.substringBeforeLast('?')
+                params["g"] = genere
             }
-
-            // 4. Solo ora prova a parsare il JSON
-            val responseJson = parseJson<Section>(responseString)
-            titlesList = searchResponseBuilder(responseJson.titles)
-
-            // 5. Logica paginazione esistente
-            hasNextPage = response.okhttpResponse.request.url.queryParameter("offset")?.toIntOrNull()
-                ?.let { it < 120 } ?: true && titlesList.size == 60
-
-        } catch (e: Exception) {
-            // 6. Cattura qualsiasi eccezione (JSON parsing, network, etc.)
-            Log.d(TAG, "Error loading main page ${request.name}: ${e.message}")
-            // Ritorna lista vuota invece di crashare
         }
+
+        if (page > 0) {
+            params["offset"] = ((page - 1) * 60).toString()
+        }
+        val response = app.get(url, params = params, timeout = 60)
+        val responseString = response.body.string()
+        val responseJson = parseJson<Section>(responseString)
+
+        val titlesList = searchResponseBuilder(responseJson.titles)
+
+        val hasNextPage =
+            response.okhttpResponse.request.url.queryParameter("offset")?.toIntOrNull()
+                ?.let { it < 120 } ?: true && titlesList.size == 60
 
         return newHomePageResponse(
             HomePageList(
