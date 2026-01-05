@@ -12,7 +12,7 @@ Clicca sull'immagine per installare la repo oppure vai in *Impostazioni* -> *Est
 
 <p align="center">
   <a href="https://diegon7771.github.io/Cs-site?r=cloudstreamrepo://pastebin.com/raw/qndZtL6D" target="_blank">
-    <img src="https://raw.githubusercontent.com/DieGon7771/DieGon7771/master/install.png" alt="Install" width="170px"/>
+    <img src="https://raw.githubusercontent.com/DieGon7771/ItaliaInStreaming/master/install.png" alt="Install" width="170px"/>
   </a>
 </p>
 
