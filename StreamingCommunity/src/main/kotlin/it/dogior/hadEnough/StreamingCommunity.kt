@@ -111,43 +111,76 @@ class StreamingCommunity : MainAPI() {
 
     //Get the Homepage
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        var url = mainUrl.substringBeforeLast("/") + "/api" +
-                request.data.substringAfter(mainUrl)
-        val params = mutableMapOf("lang" to "it")
+        // 1. Inizia con una lista vuota in caso di errori
+        var titlesList = emptyList<SearchResponse>()
+        var hasNextPage = false
 
-        val section = request.data.substringAfterLast("/")
-        when (section) {
-            "trending" -> {
-//                Log.d(TAG, "TRENDING")
+        try {
+            var url = mainUrl.substringBeforeLast("/") + "/api" +
+                    request.data.substringAfter(mainUrl)
+            val params = mutableMapOf("lang" to "it")
+
+            val section = request.data.substringAfterLast("/")
+            when (section) {
+                "trending", "latest", "top10" -> {
+                    // Logica esistente
+                }
+                else -> {
+                    val genere = url.substringAfterLast('=')
+                    url = url.substringBeforeLast('?')
+                    params["g"] = genere
+                }
             }
 
-            "latest" -> {
-//                Log.d(TAG, "LATEST")
+            if (page > 0) {
+                params["offset"] = ((page - 1) * 60).toString()
             }
 
-            "top10" -> {
-//                Log.d(TAG, "TOP10")
+            // 2. Controlla lo stato della risposta HTTP PRIMA di parsare JSON
+            val response = app.get(url, params = params)
+            
+            if (!response.isSuccessful) {
+                // Se la risposta non è 2xx (200, 201, etc.)
+                Log.d(TAG, "HTTP Error ${response.code}: ${response.message} - URL: $url")
+                return newHomePageResponse(
+                    HomePageList(
+                        name = request.name,
+                        list = emptyList(),
+                        isHorizontalImages = false
+                    ), false
+                )
             }
 
-            else -> {
-                val genere = url.substringAfterLast('=')
-                url = url.substringBeforeLast('?')
-                params["g"] = genere
+            val responseString = response.text
+            
+            // 3. Controlla se la risposta contiene errori prima di parsare
+            if (responseString.contains("error code:") || 
+                responseString.contains("502") || 
+                responseString.contains("Bad Gateway") ||
+                responseString.isBlank()) {
+                Log.d(TAG, "API returned error response: ${responseString.take(100)}...")
+                return newHomePageResponse(
+                    HomePageList(
+                        name = request.name,
+                        list = emptyList(),
+                        isHorizontalImages = false
+                    ), false
+                )
             }
-        }
 
-        if (page > 0) {
-            params["offset"] = ((page - 1) * 60).toString()
-        }
-        val response = app.get(url, params = params)
-        val responseString = response.body.string()
-        val responseJson = parseJson<Section>(responseString)
+            // 4. Solo ora prova a parsare il JSON
+            val responseJson = parseJson<Section>(responseString)
+            titlesList = searchResponseBuilder(responseJson.titles)
 
-        val titlesList = searchResponseBuilder(responseJson.titles)
-
-        val hasNextPage =
-            response.okhttpResponse.request.url.queryParameter("offset")?.toIntOrNull()
+            // 5. Logica paginazione esistente
+            hasNextPage = response.okhttpResponse.request.url.queryParameter("offset")?.toIntOrNull()
                 ?.let { it < 120 } ?: true && titlesList.size == 60
+
+        } catch (e: Exception) {
+            // 6. Cattura qualsiasi eccezione (JSON parsing, network, etc.)
+            Log.d(TAG, "Error loading main page ${request.name}: ${e.message}")
+            // Ritorna lista vuota invece di crashare
+        }
 
         return newHomePageResponse(
             HomePageList(
