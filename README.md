@@ -2,7 +2,7 @@
 
 Ciao sono DieGon! 
 
-⚠️Questo progetto è un **fork di doGior**, con modifiche personali!⚠️
+⚠️Questo progetto è un **fork di DoGior**, con modifiche personali e aggiornamenti più frequenti!⚠️
 
 Fork di doGior: [doGiorsHadEnough](https://github.com/doGior/doGiorsHadEnough) 
 
