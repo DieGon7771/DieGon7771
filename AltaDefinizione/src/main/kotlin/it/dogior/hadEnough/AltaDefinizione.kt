@@ -86,14 +86,15 @@ class AltaDefinizione : MainAPI() {
             else -> imgElement?.attr("data-src")
         }
         
-        // Cerca il rating
+        // Cerca il rating - CORRETTO: usa Score.from() invece del costruttore
         val ratingElement = this.selectFirst(".rating, .imdb-rate, .rateIMDB, [class*='rate']")
         val ratingText = ratingElement?.text()?.replace("IMDb", "")?.replace("/10", "")?.trim()
         
         return newMovieSearchResponse(title, href) {
             this.posterUrl = fixUrlNull(poster)
-            ratingText?.toFloatOrNull()?.let {
-                this.score = Score(it, 10.0f)
+            ratingText?.let {
+                // ✅ CORREZIONE QUI: usa Score.from() invece di Score()
+                this.score = Score.from(it, 10)
             }
         }
     }
