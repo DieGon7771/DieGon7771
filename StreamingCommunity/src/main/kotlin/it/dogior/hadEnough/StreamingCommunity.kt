@@ -214,10 +214,6 @@ class StreamingCommunity : MainAPI() {
         val related = props.sliders?.getOrNull(0)
         val trailers = title.trailers?.mapNotNull { it.getYoutubeUrl() }
         val poster = getPoster(title)
-        
-        // Estrai views e quality dai dati del titolo
-        val views = title.views  // Views totali
-        val quality = title.quality // "HD", "4K", ecc.
 
         if (title.type == "tv") {
             val episodes: List<Episode> = getEpisodes(props)
@@ -246,15 +242,7 @@ class StreamingCommunity : MainAPI() {
                         addTrailer(trailers)
                     }
                 }
-                
-                // AGGIUNGI VIEWS E QUALITY SOLO NEI DETTAGLI
-                this.views = views?.toInt()
-                if (!quality.isNullOrEmpty()) {
-                    this.quality = quality
-                }
-                if (title.runtime != null) {
-                    this.duration = title.runtime
-                }
+
             }
             return tvShow
         } else {
@@ -288,12 +276,6 @@ class StreamingCommunity : MainAPI() {
                     if (trailers.isNotEmpty()) {
                         addTrailer(trailers)
                     }
-                }
-                
-                // AGGIUNGI VIEWS E QUALITY SOLO NEI DETTAGLI
-                this.views = views?.toInt()
-                if (!quality.isNullOrEmpty()) {
-                    this.quality = quality
                 }
             }
             return movie
