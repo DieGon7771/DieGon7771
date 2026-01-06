@@ -126,7 +126,6 @@ data class TitleProp(
     @JsonProperty("status") val status: String?,
     @JsonProperty("age") val age: Int?,
     @JsonProperty("runtime") val runtime: Int?,
-    @JsonProperty("views") val views: Int? = null,           // AGGIUNTO - VIEWS TOTALI
     @JsonProperty("tmdb_id") val tmdbId: Int?,
     @JsonProperty("imdb_id") val imdbId: String?,
     @JsonProperty("seasons_count") val seasonsCount: Int?,
