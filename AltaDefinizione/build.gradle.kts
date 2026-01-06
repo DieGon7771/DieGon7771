@@ -22,5 +22,5 @@ cloudstream {
     requiresResources = false
     language = "it"
 
-    iconUrl = "https://altadefinizionegratis.skin/templates/Dark/img/favicon.ico"
+    iconUrl = "https://raw.githubusercontent.com/DieGon7771/ItaliaInStreaming/master/AltaDefinizione/altadefinizione_icon.png"
 }
