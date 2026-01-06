@@ -28,11 +28,6 @@ data class Title(
     @JsonProperty("name") val name: String,
     @JsonProperty("slug") val slug: String,
     @JsonProperty("type") val type: String,
-    @JsonProperty("views") val views: Int? = null,           // AGGIUNTO
-    @JsonProperty("daily_views") val dailyViews: Int? = null, // AGGIUNTO
-    @JsonProperty("score") val score: String? = null,        // AGGIUNTO
-    @JsonProperty("last_air_date") val lastAirDate: String? = null, // AGGIUNTO
-    @JsonProperty("age") val age: Int? = null,               // AGGIUNTO
     @JsonProperty("images") val images: List<PosterImage>,
 ) {
     fun getPoster(): String? {
@@ -131,8 +126,7 @@ data class TitleProp(
     @JsonProperty("status") val status: String?,
     @JsonProperty("age") val age: Int?,
     @JsonProperty("runtime") val runtime: Int?,
-    @JsonProperty("views") val views: Int? = null,           // AGGIUNTO
-    @JsonProperty("daily_views") val dailyViews: Int? = null, // AGGIUNTO
+    @JsonProperty("views") val views: Int? = null,           // AGGIUNTO - VIEWS TOTALI
     @JsonProperty("tmdb_id") val tmdbId: Int?,
     @JsonProperty("imdb_id") val imdbId: String?,
     @JsonProperty("seasons_count") val seasonsCount: Int?,
