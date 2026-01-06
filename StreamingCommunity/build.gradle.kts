@@ -15,7 +15,7 @@ cloudstream {
     * 2: Slow
     * 3: Beta only
     * */
-    status = 2
+    status = 1
     tvTypes = listOf(
         "TvSeries",
         "Movie",
@@ -27,5 +27,5 @@ cloudstream {
     requiresResources = false
     language = "it"
 
-    iconUrl = "https://streamingunity.to/apple-touch-icon.png?v=2"
+    iconUrl = "https://streamingunity.so/apple-touch-icon.png?v=2"
 }
