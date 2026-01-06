@@ -99,10 +99,12 @@ class StreamingCommunity : MainAPI() {
                 if (title.type == "tv") {
                     newTvSeriesSearchResponse(title.name, url) {
                         posterUrl = "https://cdn.${domain}/images/" + title.getPoster()
+                        // NOTA: Non aggiungiamo views qui, solo nei dettagli
                     }
                 } else {
                     newMovieSearchResponse(title.name, url) {
                         posterUrl = "https://cdn.$domain/images/" + title.getPoster()
+                        // NOTA: Non aggiungiamo views qui, solo nei dettagli
                     }
                 }
             }
@@ -214,6 +216,10 @@ class StreamingCommunity : MainAPI() {
         val related = props.sliders?.getOrNull(0)
         val trailers = title.trailers?.mapNotNull { it.getYoutubeUrl() }
         val poster = getPoster(title)
+        
+        // Estrai dati aggiuntivi per views e quality
+        val views = title.views ?: title.dailyViews?.let { it * 30 } // Stima mensile da daily
+        val quality = title.quality // "HD", "4K", ecc.
 
         if (title.type == "tv") {
             val episodes: List<Episode> = getEpisodes(props)
@@ -242,7 +248,15 @@ class StreamingCommunity : MainAPI() {
                         addTrailer(trailers)
                     }
                 }
-
+                
+                // AGGIUNGI VIEWS SOLO NEI DETTAGLI ↓
+                this.views = views?.toInt()
+                if (!quality.isNullOrEmpty()) {
+                    this.quality = quality
+                }
+                if (title.runtime != null) {
+                    this.duration = title.runtime
+                }
             }
             return tvShow
         } else {
@@ -276,6 +290,12 @@ class StreamingCommunity : MainAPI() {
                     if (trailers.isNotEmpty()) {
                         addTrailer(trailers)
                     }
+                }
+                
+                // AGGIUNGI VIEWS SOLO NEI DETTAGLI ↓
+                this.views = views?.toInt()
+                if (!quality.isNullOrEmpty()) {
+                    this.quality = quality
                 }
             }
             return movie
