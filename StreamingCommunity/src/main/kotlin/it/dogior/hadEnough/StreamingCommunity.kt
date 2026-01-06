@@ -99,12 +99,10 @@ class StreamingCommunity : MainAPI() {
                 if (title.type == "tv") {
                     newTvSeriesSearchResponse(title.name, url) {
                         posterUrl = "https://cdn.${domain}/images/" + title.getPoster()
-                        // NOTA: Non aggiungiamo views qui, solo nei dettagli
                     }
                 } else {
                     newMovieSearchResponse(title.name, url) {
                         posterUrl = "https://cdn.$domain/images/" + title.getPoster()
-                        // NOTA: Non aggiungiamo views qui, solo nei dettagli
                     }
                 }
             }
@@ -217,8 +215,8 @@ class StreamingCommunity : MainAPI() {
         val trailers = title.trailers?.mapNotNull { it.getYoutubeUrl() }
         val poster = getPoster(title)
         
-        // Estrai dati aggiuntivi per views e quality
-        val views = title.views ?: title.dailyViews?.let { it * 30 } // Stima mensile da daily
+        // Estrai views e quality dai dati del titolo
+        val views = title.views  // Views totali
         val quality = title.quality // "HD", "4K", ecc.
 
         if (title.type == "tv") {
@@ -249,7 +247,7 @@ class StreamingCommunity : MainAPI() {
                     }
                 }
                 
-                // AGGIUNGI VIEWS SOLO NEI DETTAGLI ↓
+                // AGGIUNGI VIEWS E QUALITY SOLO NEI DETTAGLI
                 this.views = views?.toInt()
                 if (!quality.isNullOrEmpty()) {
                     this.quality = quality
@@ -292,7 +290,7 @@ class StreamingCommunity : MainAPI() {
                     }
                 }
                 
-                // AGGIUNGI VIEWS SOLO NEI DETTAGLI ↓
+                // AGGIUNGI VIEWS E QUALITY SOLO NEI DETTAGLI
                 this.views = views?.toInt()
                 if (!quality.isNullOrEmpty()) {
                     this.quality = quality
