@@ -21,5 +21,5 @@ cloudstream {
         "Live",
     )
 
-    iconUrl = "https://www.calciostreaming.cool/templates/calciostreaming1/images/icons/apple-touch-icon.png"
+    iconUrl = "https://uno.direttecommunity.online//templates/calciostreaming1/images/icons/apple-touch-icon.png"
 }
