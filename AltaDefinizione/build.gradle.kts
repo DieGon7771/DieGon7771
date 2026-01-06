@@ -1,5 +1,5 @@
 // use an integer for version numbers
-version = 10
+version = 11
 
 
 cloudstream {
@@ -15,7 +15,7 @@ cloudstream {
     * 2: Slow
     * 3: Beta only
     * */
-    status = 0
+    status = 1
 
     tvTypes = listOf("Movie", "TvSeries", "Documentary")
 
