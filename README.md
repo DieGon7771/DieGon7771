@@ -8,7 +8,7 @@ Fork di doGior: [doGiorsHadEnough](https://github.com/doGior/doGiorsHadEnough)
 
 ## Installazione
 
-Clicca sull'immagine per installare la repo oppure vai in *Impostazioni* -> *Estensioni* -> *Aggiungi repository* e nel campo URL scrivi "diegon7"
+Clicca sull'immagine per installare la repo oppure vai in *Impostazioni* -> *Estensioni* -> *Aggiungi repository* e nel campo URL scrivi "**diegon7**"
 
 <p align="center">
   <a href="https://diegon7771.github.io/Cs-site?r=cloudstreamrepo://pastebin.com/raw/qndZtL6D" target="_blank">
