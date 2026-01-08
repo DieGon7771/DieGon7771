@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.konan.properties.Properties
 
 // use an integer for version numbers
-version = 9
+version = 1
 
 android {
     buildFeatures {
@@ -21,7 +21,7 @@ dependencies {
 }
 
 cloudstream {
-    language = "en"
+    language = "it"
     // All of these properties are optional, you can safely remove them
 
      description = "[!] Requires Setup \n- StremioX allows you to use stream addons \n- StremioC allows you to use catalog addons"
@@ -34,7 +34,7 @@ cloudstream {
      * 2: Slow
      * 3: Beta only
      * */
-    status = 1 // will be 3 if unspecified
+    status = 3 // will be 3 if unspecified
     tvTypes = listOf(
         "TvSeries",
         "Movie",
