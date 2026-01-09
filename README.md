@@ -18,6 +18,14 @@ Clicca sull'immagine per installare la repo oppure vai in *Impostazioni* -> *Est
  ## 👥 Community
 **Gruppo Telegram**: [ItaliaInStreaming](https://t.me/CloudStreamRepo)
 
+## ⚒️ Tecnologie Utilizzate
+
+<p align="left">
+  <a href="https://skillicons.dev">
+    <img src="https://skillicons.dev/icons?i=github,git,kotlin,androidstudio,gradle,githubactions,md&theme=dark&perline=7" />
+  </a>
+</p>
+
 
 ## 🔀 Crediti
 • **La maggior parte dei plugin** sono forkati da: [doGiorsHadEnough](https://github.com/doGior/doGiorsHadEnough) 
