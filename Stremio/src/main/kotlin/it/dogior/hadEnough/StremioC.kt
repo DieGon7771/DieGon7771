@@ -1,4 +1,4 @@
-package it.dogior.hadEnough
+package com.phisher98
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.AcraApplication
@@ -36,6 +36,9 @@ import com.lagradost.cloudstream3.utils.USER_PROVIDER_API
 import com.lagradost.cloudstream3.utils.getQualityFromName
 import com.lagradost.cloudstream3.utils.loadExtractor
 import com.lagradost.cloudstream3.utils.newExtractorLink
+import com.phisher98.StremioC.Companion.TRACKER_LIST_URLS
+import com.phisher98.SubsExtractors.invokeOpenSubs
+import com.phisher98.SubsExtractors.invokeWatchsomuch
 import org.json.JSONObject
 import java.net.URLEncoder
 import java.util.Locale
@@ -131,19 +134,33 @@ class StremioC(override var mainUrl: String, override var name: String) : MainAP
             }
         } else {
             runAllAsync(
-                {
-                    invokeStremioX(loadData.type, loadData.id, subtitleCallback, callback)
-                },
-                {
-                    invokeTorrentio(loadData.imdbId, loadData.season, loadData.episode, callback)
-                },
-                {
-                    invokeKnaben(loadData.imdbId, loadData.year, loadData.season, loadData.episode, callback)
-                },
-                {
-                    invokeUindex(loadData.imdbId, loadData.year, loadData.season, loadData.episode, callback)
-                }
-                // Rimossi invokeWatchsomuch e invokeOpenSubs che danno errori
+                    {
+                        invokeStremioX(loadData.type, loadData.id, subtitleCallback, callback)
+                    },{
+                        invokeTorrentio(loadData.imdbId, loadData.season, loadData.episode, callback)
+                    },
+                    {
+                        invokeKnaben(loadData.imdbId, loadData.year,loadData.season, loadData.episode, callback)
+                    },
+                    {
+                        invokeUindex(loadData.imdbId, loadData.year,loadData.season, loadData.episode, callback)
+                    },
+                    {
+                        invokeWatchsomuch(
+                            loadData.imdbId,
+                            loadData.season,
+                            loadData.episode,
+                            subtitleCallback
+                        )
+                    },
+                    {
+                        invokeOpenSubs(
+                            loadData.imdbId,
+                            loadData.season,
+                            loadData.episode,
+                            subtitleCallback
+                        )
+                    }
             )
         }
 
@@ -304,6 +321,7 @@ class StremioC(override var mainUrl: String, override var name: String) : MainAP
                     addImdbId(imdbId)
                 }
             }
+
         }
     }
 
@@ -324,9 +342,9 @@ class StremioC(override var mainUrl: String, override var name: String) : MainAP
             ) {
                 this.name = this@Video.name ?: title
                 this.posterUrl = thumbnail
-                this.description = overview ?: this@Video.description
+                this.description = overview ?:  this@Video.description
                 this.season = seasonNumber
-                this.episode = this@Video.episode ?: number
+                this.episode =  this@Video.episode ?: number
             }
         }
     }
@@ -370,16 +388,17 @@ class StremioC(override var mainUrl: String, override var name: String) : MainAP
                         fixSourceName(name, title),
                         url,
                         INFER_TYPE,
-                    ) {
-                        this.quality = getQuality(listOf(description, title, name))
-                        this.headers = behaviorHints?.proxyHeaders?.request ?: behaviorHints?.headers ?: mapOf()
+                    )
+                    {
+                        this.quality=getQuality(listOf(description,title,name))
+                        this.headers=behaviorHints?.proxyHeaders?.request ?: behaviorHints?.headers ?: mapOf()
                     }
                 )
                 subtitles.map { sub ->
                     subtitleCallback.invoke(
                         newSubtitleFile(
                             SubtitleHelper.fromTagToEnglishLanguageName(sub.lang ?: "") ?: sub.lang
-                                ?: "",
+                            ?: "",
                             sub.url ?: return@map
                         )
                     )
@@ -409,27 +428,12 @@ class StremioC(override var mainUrl: String, override var name: String) : MainAP
                         name ?: "",
                         title ?: name ?: "",
                         magnet,
-                    ) {
-                        this.quality = Qualities.Unknown.value
+                    )
+                    {
+                        this.quality=Qualities.Unknown.value
                     }
                 )
             }
-        }
-        
-        private fun getQuality(list: List<String?>): Int? {
-            list.forEach { text ->
-                text?.let {
-                    return when {
-                        it.contains("2160p", ignoreCase = true) -> Qualities.P2160.value
-                        it.contains("1080p", ignoreCase = true) -> Qualities.P1080.value
-                        it.contains("720p", ignoreCase = true) -> Qualities.P720.value
-                        it.contains("480p", ignoreCase = true) -> Qualities.P480.value
-                        it.contains("360p", ignoreCase = true) -> Qualities.P360.value
-                        else -> null
-                    }
-                }
-            }
-            return null
         }
     }
 }
@@ -459,8 +463,7 @@ suspend fun invokeUindex(
         "User-Agent" to "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
     )
 
-    val response = app.get(url, headers = headers)
-    val rows = response.document.select("tr")
+    val rows = app.get(url, headers = headers).documentLarge.select("tr")
 
     val episodePatterns: List<Regex> = if (isTv && episode != null) {
         val rawPatterns = listOf(
@@ -533,25 +536,121 @@ suspend fun invokeKnaben(
     episode: Int? = null,
     callback: (ExtractorLink) -> Unit
 ) {
-    if (imdbId == null) return
-    
-    val url = if (season == null) {
-        "https://torrentio.strem.fun/stream/movie/$imdbId.json"
-    } else {
-        val episodeFormatted = episode?.toString()?.padStart(2, '0') ?: "01"
-        "https://torrentio.strem.fun/stream/series/$imdbId:$season:$episodeFormatted.json"
+    val knaben = "https://knaben.org"
+    val isTv = season != null
+    val host = knaben.trimEnd('/')
+
+    val baseQuery = buildString {
+        val queryText = title?.takeIf { it.isNotBlank() } ?: return@buildString
+
+        append(
+            queryText
+                .trim()
+                .replace("\\s+".toRegex(), "+")
+        )
+
+        if (isTv && episode != null) {
+            append("+S${season.toString().padStart(2, '0')}")
+            append("E${episode.toString().padStart(2, '0')}")
+        } else if (!isTv && year != null) {
+            append("+$year")
+        }
     }
-    
-    val res = app.get(url, timeout = 100L).parsedSafe<TorrentioResponse>()
+
+    if (baseQuery.isBlank()) return
+
+    val category = when {
+        isTv -> "2000000"
+        else -> "3000000"
+    }
+
+    for (page in 1..2) {
+        val url = "$host/search/$baseQuery/$category/$page/seeders"
+
+        val doc = app.get(url).document
+
+        doc.select("tr.text-nowrap.border-start").forEach { row ->
+            val infoTd = row.selectFirst("td:nth-child(2)") ?: return@forEach
+
+            val titleElement = infoTd.selectFirst("a[title]") ?: return@forEach
+            val rawTitle = titleElement.attr("title").ifBlank { titleElement.text() }
+
+            val magnet = infoTd.selectFirst("a[href^=magnet:?]")?.attr("href") ?: return@forEach
+
+            val source = row
+                .selectFirst("td.d-sm-none.d-xl-table-cell a")
+                ?.text()
+                ?.trim()
+                .orEmpty()
+
+            val tds = row.select("td")
+            val sizeText = tds.getOrNull(2)?.text().orEmpty()
+            val seedsText = tds.getOrNull(4)?.text().orEmpty()
+            val seeds = seedsText.toIntOrNull() ?: 0
+            val qualityMatch = "(2160p|1080p|720p)"
+                .toRegex(RegexOption.IGNORE_CASE)
+                .find(rawTitle)
+                ?.value
+            val formattedTitleName = buildString {
+                append("Knaben | ")
+                append(rawTitle)
+
+                if (seeds > 0) {
+                    append(" | Seeds: ")
+                    append(seeds)
+                }
+
+                if (sizeText.isNotBlank()) {
+                    append(" | ")
+                    append(sizeText)
+                }
+
+                if (source.isNotBlank()) {
+                    append(" | ")
+                    append(source)
+                }
+            }
+
+            callback(
+                newExtractorLink(
+                    "Knaben",
+                    formattedTitleName.ifBlank { rawTitle },
+                    url = magnet,
+                    type = INFER_TYPE
+                ) {
+                    this.quality = getQualityFromName(qualityMatch)
+                }
+            )
+        }
+    }
+}
+
+suspend fun invokeTorrentio(
+    id: String? = null,
+    season: Int? = null,
+    episode: Int? = null,
+    callback: (ExtractorLink) -> Unit
+) {
+    val url = if(season == null) {
+        "https://torrentio.strem.fun/stream/movie/$id.json"
+    }
+    else {
+        "https://torrentio.strem.fun/stream/series/$id:$season:$episode.json"
+    }
+    val headers = mapOf(
+        "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+        "User-Agent" to "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+    )
+    val res = app.get(url, headers = headers, timeout = 100L).parsedSafe<TorrentioResponse>()
     res?.streams?.forEach { stream ->
         val formattedTitleName = stream.title
-            ?.let { streamTitle ->
+            ?.let { title ->
                 val qualityTermsRegex = "(2160p|1080p|720p|WEBRip|WEB-DL|x265|x264|10bit|HEVC|H264)".toRegex(RegexOption.IGNORE_CASE)
-                val tagsList = qualityTermsRegex.findAll(streamTitle).map { it.value.uppercase() }.toList()
+                val tagsList = qualityTermsRegex.findAll(title).map { it.value.uppercase() }.toList()
                 val tags = tagsList.distinct().joinToString(" | ")
 
-                val seeder = "👤\\s*(\\d+)".toRegex().find(streamTitle)?.groupValues?.get(1) ?: "0"
-                val provider = "⚙️\\s*([^\\n]+)".toRegex().find(streamTitle)?.groupValues?.get(1)?.trim() ?: "Unknown"
+                val seeder = "👤\\s*(\\d+)".toRegex().find(title)?.groupValues?.get(1) ?: "0"
+                val provider = "⚙️\\s*([^\\n]+)".toRegex().find(title)?.groupValues?.get(1)?.trim() ?: "Unknown"
 
                 "Torrentio | $tags | Seeder: $seeder | Provider: $provider".trim()
             }
@@ -561,9 +660,7 @@ suspend fun invokeKnaben(
             ?.value
             ?.lowercase()
 
-        val magnet = stream.infoHash?.let { infoHash ->
-            "magnet:?xt=urn:btih:$infoHash"
-        } ?: ""
+        val magnet = generateMagnetLink(TRACKER_LIST_URLS, stream.infoHash)
 
         callback.invoke(
             newExtractorLink(
@@ -577,28 +674,4 @@ suspend fun invokeKnaben(
             }
         )
     }
-}
-
-// Aggiungi questa classe mancante
-private data class TorrentioResponse(
-    val streams: List<TorrentioStream>?
-)
-
-private data class TorrentioStream(
-    val name: String?,
-    val title: String?,
-    val infoHash: String?,
-    val behaviorHints: Any?
-)
-
-// Funzioni di utilità
-private fun String.fixSourceUrl(): String {
-    return this.trimEnd('/')
-}
-
-private fun fixSourceName(nome: String?, titolo: String?): String {
-    val nomeFinale = nome ?: ""
-    val titoloFinale = titolo ?: nomeFinale
-    
-    return titoloFinale
 }
