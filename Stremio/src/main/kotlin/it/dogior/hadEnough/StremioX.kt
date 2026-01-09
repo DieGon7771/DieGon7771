@@ -65,10 +65,10 @@ class StremioX(override var mainUrl: String, override var name: String) : TmdbPr
     }
 
     override val mainPage = mainPageOf(
-        "$tmdbAPI/trending/all/day?api_key=$apiKey&region=US" to "Tendenze",
-        "$tmdbAPI/movie/popular?api_key=$apiKey&region=US" to "Film Popolari",
-        "$tmdbAPI/tv/popular?api_key=$apiKey&region=US&with_original_language=en" to "Serie TV Popolari",
-        "$tmdbAPI/tv/airing_today?api_key=$apiKey&region=US&with_original_language=en" to "Serie TV in Oggi",
+        "$tmdbAPI/trending/all/day?api_key=$apiKey&region=US" to "Trending",
+        "$tmdbAPI/movie/popular?api_key=$apiKey&region=US" to "Popular Movies",
+        "$tmdbAPI/tv/popular?api_key=$apiKey&region=US&with_original_language=en" to "Popular TV Shows",
+        "$tmdbAPI/tv/airing_today?api_key=$apiKey&region=US&with_original_language=en" to "Airing Today TV Shows",
         "$tmdbAPI/discover/tv?api_key=$apiKey&with_networks=213" to "Netflix",
         "$tmdbAPI/discover/tv?api_key=$apiKey&with_networks=1024" to "Amazon",
         "$tmdbAPI/discover/tv?api_key=$apiKey&with_networks=2739" to "Disney+",
@@ -76,10 +76,10 @@ class StremioX(override var mainUrl: String, override var name: String) : TmdbPr
         "$tmdbAPI/discover/tv?api_key=$apiKey&with_networks=2552" to "Apple TV+",
         "$tmdbAPI/discover/tv?api_key=$apiKey&with_networks=49" to "HBO",
         "$tmdbAPI/discover/tv?api_key=$apiKey&with_networks=4330" to "Paramount+",
-        "$tmdbAPI/movie/top_rated?api_key=$apiKey&region=US" to "Film Più Votati",
-        "$tmdbAPI/tv/top_rated?api_key=$apiKey&region=US" to "Serie TV Più Votate",
-        "$tmdbAPI/movie/upcoming?api_key=$apiKey&region=US" to "Film in Arrivo",
-        "$tmdbAPI/discover/tv?api_key=$apiKey&with_original_language=ko" to "Serie Coreane",
+        "$tmdbAPI/movie/top_rated?api_key=$apiKey&region=US" to "Top Rated Movies",
+        "$tmdbAPI/tv/top_rated?api_key=$apiKey&region=US" to "Top Rated TV Shows",
+        "$tmdbAPI/movie/upcoming?api_key=$apiKey&region=US" to "Upcoming Movies",
+        "$tmdbAPI/discover/tv?api_key=$apiKey&with_original_language=ko" to "Korean Shows",
     )
 
     private fun getImageUrl(link: String?): String? {
