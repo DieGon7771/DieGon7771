@@ -1,21 +1,11 @@
 name: Build
 
-# https://docs.github.com/en/actions/learn-github-actions/workflow-syntax-for-github-actions#concurrency
 concurrency: 
   group: "build"
   cancel-in-progress: true
 
 on:
-  workflow_dispatch:  # Allows manual triggering
- # push:
-   # branches:
-      # choose your default branch
-     # - master
-     # - main
-   # paths-ignore:
-     # - '*.md'
-     # - '*.png'
-     # - '*.yml'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -48,28 +38,32 @@ jobs:
         env:
           TMDB_API: ${{ secrets.TMDB_API }}
         run: |
-          # MODIFICA QUI: scrivi nella RADICE del workspace
-          cd $GITHUB_WORKSPACE
+          # 1. Vai in src/ (dove gradlew cerca il file)
+          cd $GITHUB_WORKSPACE/src
+          
+          # 2. CREA/SOVRASCRIVI il file (> non >>)
           echo "TMDB_API=$TMDB_API" > secrets.properties
           
-          # DEBUG: verifica che il file sia stato creato
-          echo "=== File creato in ==="
-          pwd
-          ls -la secrets.properties
-          echo "=== Contenuto ==="
-          cat secrets.properties
+          # 3. VERIFICA
+          echo "✅ File creato in: $(pwd)/secrets.properties"
+          echo "📄 Contenuto (solo inizio):"
+          head -c 30 secrets.properties && echo "..."
+          echo "📏 Dimensione:"
+          wc -l secrets.properties
 
-      - name: Debug Structure (opzionale)
+      - name: Test Pre-Build
         run: |
-          echo "=== Verifica struttura ==="
-          cd $GITHUB_WORKSPACE
-          echo "Contenuto radice:"
-          ls -la
-          echo "Contenuto src/:"
-          ls -la src/
-          
-          echo "=== Cerca settings.gradle ==="
-          find . -name "settings.gradle*" -type f
+          cd $GITHUB_WORKSPACE/src
+          echo "=== Test rapido ==="
+          # Verifica che il file esista e sia leggibile
+          if [ -f "secrets.properties" ]; then
+            echo "✅ secrets.properties ESISTE"
+            # Prova a leggere con Gradle
+            ./gradlew properties 2>&1 | grep -i "rootdir\|projectdir" | head -5
+          else
+            echo "❌ ERRORE: secrets.properties NON ESISTE!"
+            exit 1
+          fi
 
       - name: Build Plugins
         run: |
@@ -85,5 +79,5 @@ jobs:
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
           git add .
-          git commit --amend -m "Build $GITHUB_SHA" || exit 0   # do not error if nothing to commit
+          git commit --amend -m "Build $GITHUB_SHA" || exit 0
           git push --force
