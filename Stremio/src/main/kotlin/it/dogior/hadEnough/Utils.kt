@@ -1,4 +1,4 @@
-package com.phisher98
+package it.dogior.hadEnough
 
 import com.google.gson.annotations.SerializedName
 import com.lagradost.cloudstream3.APIHolder.unixTimeMS
