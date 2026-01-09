@@ -1,14 +1,11 @@
-# DieGon
+# ItaliaInStreaming
+🇮🇹Repository italiana di plugin per CloudStream!
 
-Ciao sono DieGon! 
-
-⚠️Questo progetto è un **fork di DoGior**, con modifiche personali e aggiornamenti più frequenti!⚠️
-
-Fork di doGior: [doGiorsHadEnough](https://github.com/doGior/doGiorsHadEnough) 
+---
 
 ## Installazione
 
-Clicca sull'immagine per installare la repo oppure vai in *Impostazioni* -> *Estensioni* -> *Aggiungi repository* e nel campo URL scrivi "**diegon7**"
+Clicca sull'immagine per installare la repo oppure vai in *Impostazioni* -> *Estensioni* -> *Aggiungi repository* e nel campo URL scrivi: `diegon7`
 
 <p align="center">
   <a href="https://diegon7771.github.io/Cs-site?r=cloudstreamrepo://pastebin.com/raw/qndZtL6D" target="_blank">
@@ -16,23 +13,27 @@ Clicca sull'immagine per installare la repo oppure vai in *Impostazioni* -> *Est
   </a>
 </p>
 
+---
 
-### Plugin
-Questi sono i plugin disponibili al momento
+ ## 👥 Community
+**Gruppo Telegram**: [ItaliaInStreaming](https://t.me/CloudStreamRepo)
 
-| **Nome**           |            **Categorie**            | **Lingua** | **Funzionante** | **Note**                                                                                                                                                                                                  |
-|--------------------|:-----------------------------------:|:----------:|:---------------:|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|  
-| Altadefinizione    | Film, SerieTV, Cartoni, Documentari |    🇮🇹    |        ✅        | ⚠️ Se non funziona, prova a cambiare DNS (es:dns.google.com) |
-| AnimeUnity         | Anime                               |    🇮🇹    |        ✅        | |
-| AnimeWorld         | Anime                               |    🇮🇹    |        ✅        |  |
-| Arte               | Documentari                         |    🇮🇹    |        ✅⚠️      | Potrebbe non funzionare a volte |
-| CB01               | Film, SerieTV                       |    🇮🇹    |        ✅        |  |
-| CalcioStreaming    | Sport                               |    🇮🇹    |        ✅        | |
-| Huhu               | TV Live                             |    🇺🇳    |        ✅        | |
-| StreamingCommunity | Film, SerieTV, Cartoni, Documentari |    🇮🇹🇬🇧 |        ✅        | ⚠️ Se non funziona, prova a cambiare DNS (es:dns.google.com) |
-| TV                 | TV Live                             |    🇺🇳    |        ✅        | |
+---
 
-### ⚖️ Dichiarazione di non responsabilità DMCA
+## Crediti
+• **La maggior parte dei plugin** sono forkati da: [doGiorsHadEnough](https://github.com/doGior/doGiorsHadEnough) 
+• **Stremio** forkato da: [PhisherRepo](https://github.com/phisher98/cloudstream-extensions-phisher) 
+
+---
+
+## 📄 License
+[![GNU GPLv3 Image](https://www.gnu.org/graphics/gplv3-127x51.png)](http://www.gnu.org/licenses/gpl-3.0.en.html)
+Queste estensioni sono software libero: puoi usarle, studiarle, condividerle e modificarle come desideri.
+Sono distribuite secondo i termini della [GNU General Public License](https://www.gnu.org/licenses/gpl.html) versione 3 o successive, pubblicata dalla Free Software Foundation.
+
+---
+
+## ⚖️ Dichiarazione di non responsabilità DMCA
 
 <small>Le estensioni qui presenti funzionano in maniera analoga a un normale browser web: si limitano a recuperare ed elaborare collegamenti pubblicamente disponibili su Internet.
 
@@ -44,4 +45,8 @@ Questi sono i plugin disponibili al momento
 
 • Se ritieni che un contenuto violi il copyright, **contatta direttamente l’host originale del sito web**, non gli sviluppatori di questo progetto.
 
-[Tutte le repository per cloudstream](https://rentry.org/cs3-repos)
+---
+
+### Altri repository 
+[Cloudstream wiki](https://cloudstream.miraheze.org/wiki/List_of_extensions)
+[Cs3-Repos](https://rentry.org/cs3-repos)
