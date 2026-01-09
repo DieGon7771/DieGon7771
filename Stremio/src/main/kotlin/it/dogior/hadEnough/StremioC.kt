@@ -1,4 +1,4 @@
-package com.phisher98
+package it.dogior.hadEnough
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.AcraApplication
@@ -36,9 +36,9 @@ import com.lagradost.cloudstream3.utils.USER_PROVIDER_API
 import com.lagradost.cloudstream3.utils.getQualityFromName
 import com.lagradost.cloudstream3.utils.loadExtractor
 import com.lagradost.cloudstream3.utils.newExtractorLink
-import com.phisher98.StremioC.Companion.TRACKER_LIST_URLS
-import com.phisher98.SubsExtractors.invokeOpenSubs
-import com.phisher98.SubsExtractors.invokeWatchsomuch
+import it.dogior.hadEnough.StremioC.Companion.TRACKER_LIST_URLS
+import it.dogior.hadEnough.SubsExtractors.invokeOpenSubs
+import it.dogior.hadEnough.SubsExtractors.invokeWatchsomuch
 import org.json.JSONObject
 import java.net.URLEncoder
 import java.util.Locale
