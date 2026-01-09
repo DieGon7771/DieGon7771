@@ -12,7 +12,7 @@ import org.json.JSONArray
 
 @CloudstreamPlugin
 class StremioXPlugin : Plugin() {
-    private val PREF_FILE = "Stremio"
+    private val PREF_FILE = "StremioX"
     private val PREF_KEY_LINKS = "stremio_saved_links"
 
     override fun load(context: Context) {
