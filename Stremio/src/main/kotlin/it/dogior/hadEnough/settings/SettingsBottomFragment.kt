@@ -1,4 +1,4 @@
-package com.phisher98
+package it.dogior.hadEnough
 
 import android.annotation.SuppressLint
 import android.content.Intent
