@@ -1,4 +1,4 @@
-package com.phisher98
+package it.dogior.hadEnough
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.SubtitleFile
