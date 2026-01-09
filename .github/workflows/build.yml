@@ -48,8 +48,28 @@ jobs:
         env:
           TMDB_API: ${{ secrets.TMDB_API }}
         run: |
-          cd $GITHUB_WORKSPACE/src
-          echo TMDB_API=$TMDB_API >> secrets.properties
+          # MODIFICA QUI: scrivi nella RADICE del workspace
+          cd $GITHUB_WORKSPACE
+          echo "TMDB_API=$TMDB_API" > secrets.properties
+          
+          # DEBUG: verifica che il file sia stato creato
+          echo "=== File creato in ==="
+          pwd
+          ls -la secrets.properties
+          echo "=== Contenuto ==="
+          cat secrets.properties
+
+      - name: Debug Structure (opzionale)
+        run: |
+          echo "=== Verifica struttura ==="
+          cd $GITHUB_WORKSPACE
+          echo "Contenuto radice:"
+          ls -la
+          echo "Contenuto src/:"
+          ls -la src/
+          
+          echo "=== Cerca settings.gradle ==="
+          find . -name "settings.gradle*" -type f
 
       - name: Build Plugins
         run: |
