@@ -3,7 +3,7 @@
 
 ---
 
-## Installazione
+## 📥 Installazione
 
 Clicca sull'immagine per installare la repo oppure vai in *Impostazioni* -> *Estensioni* -> *Aggiungi repository* e nel campo URL scrivi: `diegon7`
 
