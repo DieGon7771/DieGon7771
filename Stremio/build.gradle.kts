@@ -10,9 +10,22 @@ android {
     }
     defaultConfig {
         val properties = Properties()
-        properties.load(project.rootProject.file("local.properties").inputStream())
-        android.buildFeatures.buildConfig=true
-        buildConfigField("String", "TMDB_API", "\"${properties.getProperty("TMDB_API")}\"")
+        
+        // Cerca prima secrets.properties, poi local.properties
+        val file = when {
+            project.rootProject.file("secrets.properties").exists() -> 
+                project.rootProject.file("secrets.properties")
+            project.rootProject.file("local.properties").exists() -> 
+                project.rootProject.file("local.properties")
+            else -> null
+        }
+        
+        if (file != null) {
+            properties.load(file.inputStream())
+        }
+        
+        val tmdbApi = properties.getProperty("TMDB_API", "")
+        buildConfigField("String", "TMDB_API", "\"$tmdbApi\"")
     }
 }
 
@@ -22,19 +35,9 @@ dependencies {
 
 cloudstream {
     language = "it"
-    // All of these properties are optional, you can safely remove them
-
-     description = "ATTUALMENTE IN FASE BETA\n\n[!] Configurazione Richiesta\n- StremioX: per utilizzare addons di streaming\n- StremioC: per utilizzare addons di catalogo"
-     authors = listOf("Hexated,phisher98,DieGon")
-
-    /**
-     * Status int as the following:
-     * 0: Down
-     * 1: Ok
-     * 2: Slow
-     * 3: Beta only
-     * */
-    status = 3 // will be 3 if unspecified
+    description = "ATTUALMENTE IN FASE BETA\n\n[!] Configurazione Richiesta\n- StremioX: per utilizzare addons di streaming\n- StremioC: per utilizzare addons di catalogo"
+    authors = listOf("Hexated,phisher98,DieGon")
+    status = 3
     tvTypes = listOf(
         "TvSeries",
         "Movie",
