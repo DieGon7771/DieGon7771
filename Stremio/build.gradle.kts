@@ -24,8 +24,8 @@ cloudstream {
     language = "it"
     // All of these properties are optional, you can safely remove them
 
-     description = "[!] Requires Setup \n- StremioX allows you to use stream addons \n- StremioC allows you to use catalog addons"
-     authors = listOf("Hexated,phisher98")
+     description = "ATTUALMENTE IN FASE BETA\n\n[!] Configurazione Richiesta\n- StremioX: per utilizzare addons di streaming\n- StremioC: per utilizzare addons di catalogo"
+     authors = listOf("Hexated,phisher98,DieGon")
 
     /**
      * Status int as the following:
