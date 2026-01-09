@@ -1,6 +1,5 @@
 import org.jetbrains.kotlin.konan.properties.Properties
 
-// use an integer for version numbers
 version = 1
 
 android {
@@ -10,22 +9,9 @@ android {
     }
     defaultConfig {
         val properties = Properties()
-        
-        // Cerca prima secrets.properties, poi local.properties
-        val file = when {
-            project.rootProject.file("secrets.properties").exists() -> 
-                project.rootProject.file("secrets.properties")
-            project.rootProject.file("local.properties").exists() -> 
-                project.rootProject.file("local.properties")
-            else -> null
-        }
-        
-        if (file != null) {
-            properties.load(file.inputStream())
-        }
-        
-        val tmdbApi = properties.getProperty("TMDB_API", "")
-        buildConfigField("String", "TMDB_API", "\"$tmdbApi\"")
+        properties.load(project.rootProject.file("secrets.properties").inputStream())
+        android.buildFeatures.buildConfig = true
+        buildConfigField("String", "TMDB_API", "\"${properties.getProperty("TMDB_API")}\"")
     }
 }
 
