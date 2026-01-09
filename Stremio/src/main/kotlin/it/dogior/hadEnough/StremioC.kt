@@ -463,7 +463,7 @@ suspend fun invokeUindex(
         "User-Agent" to "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
     )
 
-    val rows = app.get(url, headers = headers).documentLarge.select("tr")
+    val rows = app.get(url, headers = headers).document.select("tr")
 
     val episodePatterns: List<Regex> = if (isTv && episode != null) {
         val rawPatterns = listOf(
@@ -480,9 +480,9 @@ suspend fun invokeUindex(
         emptyList()
     }
 
-    rows.amap { row ->
-        val rowTitle = row.select("td:nth-child(2) > a:nth-child(2)").text()
-        val magnet = row.select("td:nth-child(2) > a:nth-child(1)").attr("href")
+    rows.amap { row: org.jsoup.nodes.Element ->
+        val rowTitle = row.select("td:nth-child(2) > a:nth-child(2)").firstOrNull()?.text() ?: ""
+        val magnet = row.select("td:nth-child(2) > a:nth-child(1)").firstOrNull()?.attr("href") ?: ""
 
         if (rowTitle.isBlank() || magnet.isBlank()) return@amap
 
@@ -497,12 +497,12 @@ suspend fun invokeUindex(
 
         val seeder = row
             .select("td:nth-child(4) > span")
-            .text()
-            .replace(",", "")
-            .ifBlank { "0" }
+            .firstOrNull()
+            ?.text()
+            ?.replace(",", "")
+            ?.ifBlank { "0" } ?: "0"
 
-        val fileSize = row.select("td:nth-child(3)").text()
-
+        val fileSize = row.select("td:nth-child(3)").firstOrNull()?.text() ?: ""
         val formattedTitleName = run {
             val qualityTermsRegex =
                 "(WEBRip|WEB-DL|x265|x264|10bit|HEVC|H264)"
