@@ -1,6 +1,6 @@
 import org.jetbrains.kotlin.konan.properties.Properties
 
-version = 1
+version = 2
 
 android {
     buildFeatures {
@@ -23,7 +23,7 @@ cloudstream {
     language = "it"
     description = "ATTUALMENTE IN FASE BETA\n\n[!] Configurazione Richiesta\n- StremioX: per utilizzare addons di streaming\n- StremioC: per utilizzare addons di catalogo"
     authors = listOf("Hexated,phisher98,DieGon")
-    status = 3
+    status = 1
     tvTypes = listOf(
         "TvSeries",
         "Movie",
