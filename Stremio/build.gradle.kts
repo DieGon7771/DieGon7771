@@ -31,6 +31,19 @@ android {
 
 dependencies {
     implementation("com.google.android.material:material:1.13.0")
+    
+    // Aggiunto dipendenze
+    implementation("com.google.code.gson:gson:2.10.1")  
+    implementation("org.jsoup:jsoup:1.17.2")           
+    
+    
+    implementation("com.lagradost:cloudstream3:pre-release")
+    implementation(kotlin("stdlib"))
+    implementation("com.github.Blatzar:NiceHttp:0.4.13")
+    implementation("androidx.annotation:annotation:1.9.1")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.20.1")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.20.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
 }
 
 cloudstream {
