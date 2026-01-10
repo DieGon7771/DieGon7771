@@ -1,43 +1,45 @@
 name: Build
 
 # https://docs.github.com/en/actions/learn-github-actions/workflow-syntax-for-github-actions#concurrency
-concurrency:
+concurrency: 
   group: "build"
   cancel-in-progress: true
 
 on:
-  push:
-    branches:
-      - master
-      - main
-    paths-ignore:
-      - '*.md'
+  workflow_dispatch:  # Allows manual triggering
+ # push:
+   # branches:
+      # choose your default branch
+     # - master
+     # - main
+   # paths-ignore:
+     # - '*.md'
+     # - '*.png'
+     # - '*.yml'
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@master
         with:
           path: "src"
 
       - name: Checkout builds
-        uses: actions/checkout@v5
+        uses: actions/checkout@master
         with:
           ref: "builds"
           path: "builds"
-
+      
       - name: Clean old builds
-        run: |
-          rm $GITHUB_WORKSPACE/builds/*.cs3 || true
+        run: rm $GITHUB_WORKSPACE/builds/*.cs3
 
-      - name: Setup JDK 17
-        uses: actions/setup-java@v5
+      - name: Setup Java 17
+        uses: actions/setup-java@v4.6.0
         with:
-          java-version: 17
           distribution: adopt
-          cache: gradle
+          java-version: 17
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3.2.2
@@ -47,21 +49,13 @@ jobs:
           TMDB_API: ${{ secrets.TMDB_API }}
         run: |
           cd $GITHUB_WORKSPACE/src
-          
-          # IMPORTANTE: Usa '>' invece di '>>' per sovrascrivere
-          echo "TMDB_API=$TMDB_API" >> secrets.properties
-          
-          # DEBUG: verifica
-          echo "✅ File creato in: $(pwd)/secrets.properties"
-          echo "📄 Contenuto (primi 20 caratteri):"
-          head -c 50 secrets.properties && echo "..."
+          echo TMDB_API=$TMDB_API >> secrets.properties
 
       - name: Build Plugins
         run: |
           cd $GITHUB_WORKSPACE/src
           chmod +x gradlew
           ./gradlew make makePluginsJson
-          ./gradlew ensureJarCompatibility
           cp **/build/*.cs3 $GITHUB_WORKSPACE/builds
           cp build/plugins.json $GITHUB_WORKSPACE/builds
 
