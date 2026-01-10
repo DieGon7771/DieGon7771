@@ -38,7 +38,8 @@ import com.lagradost.cloudstream3.utils.loadExtractor
 import com.lagradost.cloudstream3.utils.newExtractorLink
 import it.dogior.hadEnough.SubsExtractors.invokeOpenSubs
 import it.dogior.hadEnough.SubsExtractors.invokeWatchsomuch
-import java.io.File
+import java.util.Calendar
+import java.util.TimeZone
 import java.util.concurrent.TimeUnit
 
 class StremioX(override var mainUrl: String, override var name: String) : TmdbProvider() {
@@ -80,10 +81,10 @@ class StremioX(override var mainUrl: String, override var name: String) : TmdbPr
             }
         }
         
-        // 💾 CACHE 24 ORE
+        // 💾 CACHE 48 ORE (aumentata)
         private class TMDBRequestCache {
             private val cache = mutableMapOf<String, Pair<Long, String>>()
-            private val cacheDuration = TimeUnit.HOURS.toMillis(24)
+            private val cacheDuration = TimeUnit.HOURS.toMillis(48)  // 48 ORE!
             
             fun getCached(url: String): String? {
                 val cached = cache[url]
@@ -99,16 +100,46 @@ class StremioX(override var mainUrl: String, override var name: String) : TmdbPr
             }
         }
         
-        // 🚦 RATE LIMITER (800/1000 al giorno per sicurezza)
-        private class TMDBRateLimiter {
+        // 🚦 FAKE "LIMITE GLOBALE" (per ogni istanza)
+        // NOTA: Ogni utente ha contatore separato, ma con limite molto basso
+        // così il totale multi-utente rimane sotto 900
+        private class GlobalRateLimiter {
             private var requestCount = 0
-            private var lastReset = System.currentTimeMillis()
-            private val dailyLimit = 800
-            private val resetInterval = TimeUnit.HOURS.toMillis(24)
+            private val GLOBAL_LIMIT_PER_INSTANCE = 200  // Conservativo: 200 per utente
+            private var lastResetDay = getCurrentMidnightUTC()
+            
+            // 🕛 MEZZANOTTE UTC
+            private fun getCurrentMidnightUTC(): Long {
+                val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+                return calendar.timeInMillis
+            }
+            
+            // 🕐 PROSSIMA MEZZANOTTE UTC
+            private fun getNextMidnightUTC(): Long {
+                val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+                calendar.add(Calendar.DAY_OF_YEAR, 1)
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+                return calendar.timeInMillis
+            }
             
             fun canMakeRequest(): Boolean {
-                resetIfNeeded()
-                return requestCount < dailyLimit
+                val currentDay = getCurrentMidnightUTC()
+                
+                // 🔄 RESET A MEZZANOTTE UTC
+                if (currentDay > lastResetDay) {
+                    requestCount = 0
+                    lastResetDay = currentDay
+                    println("✅ Contatore globale resettato a mezzanotte UTC")
+                }
+                
+                return requestCount < GLOBAL_LIMIT_PER_INSTANCE
             }
             
             fun recordRequest() {
@@ -116,35 +147,52 @@ class StremioX(override var mainUrl: String, override var name: String) : TmdbPr
             }
             
             fun getRemaining(): Int {
-                resetIfNeeded()
-                return dailyLimit - requestCount
+                // Forza check giorno
+                canMakeRequest()
+                return GLOBAL_LIMIT_PER_INSTANCE - requestCount
             }
             
-            private fun resetIfNeeded() {
-                if (System.currentTimeMillis() - lastReset > resetInterval) {
-                    requestCount = 0
-                    lastReset = System.currentTimeMillis()
-                }
+            fun getUsedToday(): Int {
+                canMakeRequest()
+                return requestCount
+            }
+            
+            fun getTimeUntilReset(): String {
+                val nextMidnight = getNextMidnightUTC()
+                val diff = nextMidnight - System.currentTimeMillis()
+                val hours = TimeUnit.MILLISECONDS.toHours(diff)
+                val minutes = TimeUnit.MILLISECONDS.toMinutes(diff) % 60
+                
+                return "$hours ore e $minutes minuti"
             }
         }
         
         private val cache = TMDBRequestCache()
-        private val rateLimiter = TMDBRateLimiter()
+        private val rateLimiter = GlobalRateLimiter()
         
         // 🌐 MASTER REQUEST FUNCTION CON CACHE + LIMITI
         private suspend fun makeTMDBRequest(url: String): String {
-            // 1. Controlla cache
+            // 1. Controlla cache (48 ore)
             val cached = cache.getCached(url)
             if (cached != null) {
+                println("📦 Cache hit: $url")
                 return cached
             }
             
-            // 2. Controlla limite giornaliero
+            // 2. Controlla limite globale (per questa istanza)
             if (!rateLimiter.canMakeRequest()) {
-                val remaining = rateLimiter.getRemaining()
+                val used = rateLimiter.getUsedToday()
+                val timeLeft = rateLimiter.getTimeUntilReset()
+                
                 throw ErrorLoadingException(
-                    "Limite TMDB raggiunto (${1000 - remaining}/1000 richieste). " +
-                    "Riprova domani o usa meno ricerche."
+                    "🚫 LIMITE RICHIESTE RAGGIUNTO\n\n" +
+                    "Hai utilizzato tutte le $used ricerche disponibili per oggi.\n\n" +
+                    "⏰ Il limite si resetta tra: $timeLeft\n" +
+                    "📅 Orario reset: 00:00 UTC (01:00 ora italiana)\n\n" +
+                    "✅ Cosa puoi fare:\n" +
+                    "• Usa i contenuti già caricati\n" +
+                    "• Riduci le ricerche\n" +
+                    "• Riprova domani"
                 )
             }
             
@@ -158,18 +206,20 @@ class StremioX(override var mainUrl: String, override var name: String) : TmdbPr
             // 4. Registra richiesta
             rateLimiter.recordRequest()
             
-            // 5. Avvisa se limite prossimo
+            // 5. Avviso utente se limite prossimo
             val remaining = rateLimiter.getRemaining()
-            if (remaining < 100) {
-                println("⚠️ ATTENZIONE: Solo $remaining richieste TMDB rimaste oggi!")
+            if (remaining < 30) {
+                println("⚠️ AVVISO: Solo $remaining ricerche rimaste oggi per questo utente")
+                // Nota: Non visibile all'utente senza UI changes
             }
             
             if (!response.isSuccessful) {
-                throw ErrorLoadingException("TMDB API Error: ${response.code}")
+                throw ErrorLoadingException("Errore TMDB API: ${response.code}")
             }
             
             val text = response.text
             cache.setCached(url, text)
+            println("📊 Richiesta TMDB #${rateLimiter.getUsedToday()}/$GLOBAL_LIMIT_PER_INSTANCE")
             return text
         }
 
@@ -191,15 +241,17 @@ class StremioX(override var mainUrl: String, override var name: String) : TmdbPr
         init {
             println("🔑 StremioX - TMDB Key length: ${apiKey.length}")
             println("🔑 StremioX - Using V4 format: $isV4Key")
-            println("📊 StremioX - Daily requests remaining: ${rateLimiter.getRemaining()}")
+            println("🌍 StremioX - GLOBAL limit per instance: $GLOBAL_LIMIT_PER_INSTANCE richieste")
+            println("⏰ StremioX - Reset giornaliero: 00:00 UTC")
+            println("🔄 StremioX - Tempo al reset: ${rateLimiter.getTimeUntilReset()}")
         }
     }
 
-    // 🎯 SOLO 3 SEZIONI (ridotte da 15!)
+    // 🎯 RIDOTTO A 2 SEZIONI (per ridurre richieste)
     override val mainPage = mainPageOf(
         buildUrl("$tmdbAPI/trending/all/day?region=US") to "Trending",
-        buildUrl("$tmdbAPI/movie/popular?region=US") to "Film Popolari", 
-        buildUrl("$tmdbAPI/tv/popular?region=US") to "Serie TV Popolari"
+        buildUrl("$tmdbAPI/movie/popular?region=US") to "Film Popolari"
+        // SOLO 2 invece di 3!
     )
 
     private fun getImageUrl(link: String?): String? {
@@ -222,7 +274,7 @@ class StremioX(override var mainUrl: String, override var name: String) : TmdbPr
         val responseText = makeTMDBRequest("${request.data}$adultQuery&page=$page")
         val home = parseJson<Results>(responseText)?.results?.mapNotNull { media ->
             media.toSearchResponse(type)
-        } ?: throw ErrorLoadingException("Invalid Json response")
+        } ?: throw ErrorLoadingException("Risposta JSON non valida")
         
         return newHomePageResponse(request.name, home)
     }
@@ -240,6 +292,13 @@ class StremioX(override var mainUrl: String, override var name: String) : TmdbPr
     override suspend fun quickSearch(query: String): List<SearchResponse>? = search(query,1)?.items
 
     override suspend fun search(query: String, page: Int): SearchResponseList? {
+        // 🚨 DISABILITA RICERCA SE LIMITE PROSSIMO
+       // val remaining = rateLimiter.getRemaining()
+      //  if (remaining < 10) {
+         //   println("🚫 Ricerca bloccata: solo $remaining richieste rimaste")
+          //  return emptyList<SearchResponse>().toNewSearchResponseList()
+    //    }
+        
         val url = buildUrl(
             "$tmdbAPI/search/multi?language=en-US&query=$query&page=$page&include_adult=${settingsForProvider.enableAdult}"
         )
@@ -264,7 +323,7 @@ class StremioX(override var mainUrl: String, override var name: String) : TmdbPr
         
         val responseText = makeTMDBRequest(resUrl)
         val res = parseJson<MediaDetail>(responseText)
-            ?: throw ErrorLoadingException("Invalid Json Response")
+            ?: throw ErrorLoadingException("Risposta JSON non valida")
 
         val title = res.title ?: res.name ?: return null
         val poster = getOriImageUrl(res.posterPath)
