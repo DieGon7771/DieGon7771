@@ -38,6 +38,8 @@ import com.lagradost.cloudstream3.utils.loadExtractor
 import com.lagradost.cloudstream3.utils.newExtractorLink
 import it.dogior.hadEnough.SubsExtractors.invokeOpenSubs
 import it.dogior.hadEnough.SubsExtractors.invokeWatchsomuch
+import java.io.File
+import java.util.concurrent.TimeUnit
 
 class StremioX(override var mainUrl: String, override var name: String) : TmdbProvider() {
     override val hasMainPage = true
@@ -49,11 +51,127 @@ class StremioX(override var mainUrl: String, override var name: String) : TmdbPr
         private const val tmdbAPI = "https://api.themoviedb.org/3"
         private const val apiKey = BuildConfig.TMDB_API
         
-        // AGGIUNGI QUESTI HEADERS - COME TORRENTIO!
-        private val authHeaders = mapOf(
-            "Authorization" to "Bearer $apiKey",
-            "accept" to "application/json"
-        )
+        // 🔧 AUTO-DETECT FORMATO CHIAVE
+        private val isV4Key: Boolean by lazy {
+            apiKey.length > 50 && apiKey.startsWith("eyJ")
+        }
+        
+        // 🛡️ HEADERS SOLO PER CHIAVE V4
+        private val authHeaders: Map<String, String> by lazy {
+            if (isV4Key) {
+                mapOf("Authorization" to "Bearer $apiKey", "accept" to "application/json")
+            } else {
+                emptyMap()
+            }
+        }
+        
+        // 🔗 COSTRUISCI URL CON/SENZA api_key
+        private fun buildUrl(baseUrl: String): String {
+            return if (isV4Key) {
+                // Chiave nuova: NO api_key in URL
+                baseUrl
+            } else {
+                // Chiave vecchia: aggiungi api_key
+                if (baseUrl.contains("?")) {
+                    "$baseUrl&api_key=$apiKey"
+                } else {
+                    "$baseUrl?api_key=$apiKey"
+                }
+            }
+        }
+        
+        // 💾 CACHE 24 ORE
+        private class TMDBRequestCache {
+            private val cache = mutableMapOf<String, Pair<Long, String>>()
+            private val cacheDuration = TimeUnit.HOURS.toMillis(24)
+            
+            fun getCached(url: String): String? {
+                val cached = cache[url]
+                return if (cached != null && System.currentTimeMillis() - cached.first < cacheDuration) {
+                    cached.second
+                } else {
+                    null
+                }
+            }
+            
+            fun setCached(url: String, data: String) {
+                cache[url] = Pair(System.currentTimeMillis(), data)
+            }
+        }
+        
+        // 🚦 RATE LIMITER (800/1000 al giorno per sicurezza)
+        private class TMDBRateLimiter {
+            private var requestCount = 0
+            private var lastReset = System.currentTimeMillis()
+            private val dailyLimit = 800
+            private val resetInterval = TimeUnit.HOURS.toMillis(24)
+            
+            fun canMakeRequest(): Boolean {
+                resetIfNeeded()
+                return requestCount < dailyLimit
+            }
+            
+            fun recordRequest() {
+                requestCount++
+            }
+            
+            fun getRemaining(): Int {
+                resetIfNeeded()
+                return dailyLimit - requestCount
+            }
+            
+            private fun resetIfNeeded() {
+                if (System.currentTimeMillis() - lastReset > resetInterval) {
+                    requestCount = 0
+                    lastReset = System.currentTimeMillis()
+                }
+            }
+        }
+        
+        private val cache = TMDBRequestCache()
+        private val rateLimiter = TMDBRateLimiter()
+        
+        // 🌐 MASTER REQUEST FUNCTION CON CACHE + LIMITI
+        private suspend fun makeTMDBRequest(url: String): String {
+            // 1. Controlla cache
+            val cached = cache.getCached(url)
+            if (cached != null) {
+                return cached
+            }
+            
+            // 2. Controlla limite giornaliero
+            if (!rateLimiter.canMakeRequest()) {
+                val remaining = rateLimiter.getRemaining()
+                throw ErrorLoadingException(
+                    "Limite TMDB raggiunto (${1000 - remaining}/1000 richieste). " +
+                    "Riprova domani o usa meno ricerche."
+                )
+            }
+            
+            // 3. Fai richiesta
+            val response = if (isV4Key) {
+                app.get(url, headers = authHeaders)
+            } else {
+                app.get(url)
+            }
+            
+            // 4. Registra richiesta
+            rateLimiter.recordRequest()
+            
+            // 5. Avvisa se limite prossimo
+            val remaining = rateLimiter.getRemaining()
+            if (remaining < 100) {
+                println("⚠️ ATTENZIONE: Solo $remaining richieste TMDB rimaste oggi!")
+            }
+            
+            if (!response.isSuccessful) {
+                throw ErrorLoadingException("TMDB API Error: ${response.code}")
+            }
+            
+            val text = response.text
+            cache.setCached(url, text)
+            return text
+        }
 
         fun getType(t: String?): TvType {
             return when (t) {
@@ -68,25 +186,20 @@ class StremioX(override var mainUrl: String, override var name: String) : TmdbPr
                 else -> ShowStatus.Completed
             }
         }
+        
+        // 📊 LOG INIT (solo per debug)
+        init {
+            println("🔑 StremioX - TMDB Key length: ${apiKey.length}")
+            println("🔑 StremioX - Using V4 format: $isV4Key")
+            println("📊 StremioX - Daily requests remaining: ${rateLimiter.getRemaining()}")
+        }
     }
 
-    // RIMUOVI api_key DA TUTTE LE URL!
+    // 🎯 SOLO 3 SEZIONI (ridotte da 15!)
     override val mainPage = mainPageOf(
-        "$tmdbAPI/trending/all/day?region=US" to "Trending",  // ← NO api_key!
-        "$tmdbAPI/movie/popular?region=US" to "Popular Movies",
-        "$tmdbAPI/tv/popular?region=US&with_original_language=en" to "Popular TV Shows",
-        "$tmdbAPI/tv/airing_today?region=US&with_original_language=en" to "Airing Today TV Shows",
-        "$tmdbAPI/discover/tv?with_networks=213" to "Netflix",
-        "$tmdbAPI/discover/tv?with_networks=1024" to "Amazon",
-        "$tmdbAPI/discover/tv?with_networks=2739" to "Disney+",
-        "$tmdbAPI/discover/tv?with_networks=453" to "Hulu",
-        "$tmdbAPI/discover/tv?with_networks=2552" to "Apple TV+",
-        "$tmdbAPI/discover/tv?with_networks=49" to "HBO",
-        "$tmdbAPI/discover/tv?with_networks=4330" to "Paramount+",
-        "$tmdbAPI/movie/top_rated?region=US" to "Top Rated Movies",
-        "$tmdbAPI/tv/top_rated?region=US" to "Top Rated TV Shows",
-        "$tmdbAPI/movie/upcoming?region=US" to "Upcoming Movies",
-        "$tmdbAPI/discover/tv?with_original_language=ko" to "Korean Shows",
+        buildUrl("$tmdbAPI/trending/all/day?region=US") to "Trending",
+        buildUrl("$tmdbAPI/movie/popular?region=US") to "Film Popolari", 
+        buildUrl("$tmdbAPI/tv/popular?region=US") to "Serie TV Popolari"
     )
 
     private fun getImageUrl(link: String?): String? {
@@ -106,11 +219,11 @@ class StremioX(override var mainUrl: String, override var name: String) : TmdbPr
             if (settingsForProvider.enableAdult) "" else "&without_keywords=190370|13059|226161|195669|190370"
         val type = if (request.data.contains("/movie")) "movie" else "tv"
         
-        // AGGIUNGI HEADERS QUI!
-        val home = app.get("${request.data}$adultQuery&page=$page", headers = authHeaders)
-            .parsedSafe<Results>()?.results?.mapNotNull { media ->
-                media.toSearchResponse(type)
-            } ?: throw ErrorLoadingException("Invalid Json reponse")
+        val responseText = makeTMDBRequest("${request.data}$adultQuery&page=$page")
+        val home = parseJson<Results>(responseText)?.results?.mapNotNull { media ->
+            media.toSearchResponse(type)
+        } ?: throw ErrorLoadingException("Invalid Json response")
+        
         return newHomePageResponse(request.name, home)
     }
 
@@ -127,29 +240,30 @@ class StremioX(override var mainUrl: String, override var name: String) : TmdbPr
     override suspend fun quickSearch(query: String): List<SearchResponse>? = search(query,1)?.items
 
     override suspend fun search(query: String, page: Int): SearchResponseList? {
-        // AGGIUNGI HEADERS E RIMUOVI api_key!
-        return app.get(
-            "$tmdbAPI/search/multi?language=en-US&query=$query&page=$page&include_adult=${settingsForProvider.enableAdult}",
-            headers = authHeaders  // ← AGGIUNGI QUI!
-        ).parsedSafe<Results>()?.results?.mapNotNull { media ->
+        val url = buildUrl(
+            "$tmdbAPI/search/multi?language=en-US&query=$query&page=$page&include_adult=${settingsForProvider.enableAdult}"
+        )
+        
+        val responseText = makeTMDBRequest(url)
+        return parseJson<Results>(responseText)?.results?.mapNotNull { media ->
             media.toSearchResponse()
         }?.toNewSearchResponseList()
     }
-
 
     override suspend fun load(url: String): LoadResponse? {
         val data = parseJson<Data>(url)
         val type = getType(data.type)
         
-        // RIMUOVI api_key DALLE URL!
-        val resUrl = if (type == TvType.Movie) {
-            "$tmdbAPI/movie/${data.id}?append_to_response=keywords,credits,external_ids,videos,recommendations"
-        } else {
-            "$tmdbAPI/tv/${data.id}?append_to_response=keywords,credits,external_ids,videos,recommendations"
-        }
+        val resUrl = buildUrl(
+            if (type == TvType.Movie) {
+                "$tmdbAPI/movie/${data.id}?append_to_response=keywords,credits,external_ids,videos,recommendations"
+            } else {
+                "$tmdbAPI/tv/${data.id}?append_to_response=keywords,credits,external_ids,videos,recommendations"
+            }
+        )
         
-        // AGGIUNGI HEADERS!
-        val res = app.get(resUrl, headers = authHeaders).parsedSafe<MediaDetail>()
+        val responseText = makeTMDBRequest(resUrl)
+        val res = parseJson<MediaDetail>(responseText)
             ?: throw ErrorLoadingException("Invalid Json Response")
 
         val title = res.title ?: res.name ?: return null
@@ -179,11 +293,9 @@ class StremioX(override var mainUrl: String, override var name: String) : TmdbPr
 
         return if (type == TvType.TvSeries) {
             val episodes = res.seasons?.mapNotNull { season ->
-                // AGGIUNGI HEADERS ANCHE QUI!
-                app.get(
-                    "$tmdbAPI/${data.type}/${data.id}/season/${season.seasonNumber}",
-                    headers = authHeaders  // ← AGGIUNGI
-                ).parsedSafe<MediaDetailEpisodes>()?.episodes?.map { eps ->
+                val seasonUrl = buildUrl("$tmdbAPI/tv/${data.id}/season/${season.seasonNumber}")
+                val seasonText = makeTMDBRequest(seasonUrl)
+                parseJson<MediaDetailEpisodes>(seasonText)?.episodes?.map { eps ->
                         newEpisode(LoadData(
                             res.external_ids?.imdb_id,
                             eps.seasonNumber,
@@ -212,7 +324,6 @@ class StremioX(override var mainUrl: String, override var name: String) : TmdbPr
                 this.showStatus = getStatus(res.status)
                 this.recommendations = recommendations
                 this.actors = actors
-                //this.contentRating = fetchContentRating(data.id, "US")
                 addTrailer(trailer)
                 addTMDbId(data.id.toString())
                 addImdbId(res.external_ids?.imdb_id)
@@ -234,7 +345,6 @@ class StremioX(override var mainUrl: String, override var name: String) : TmdbPr
                 this.score = Score.from10(res.vote_average.toString())
                 this.recommendations = recommendations
                 this.actors = actors
-                //this.contentRating = fetchContentRating(data.id, "US")
                 addTrailer(trailer)
                 addTMDbId(data.id.toString())
                 addImdbId(res.external_ids?.imdb_id)
