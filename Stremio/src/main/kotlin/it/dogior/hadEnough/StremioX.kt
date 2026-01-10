@@ -48,6 +48,12 @@ class StremioX(override var mainUrl: String, override var name: String) : TmdbPr
         const val TRACKER_LIST_URL = "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt"
         private const val tmdbAPI = "https://api.themoviedb.org/3"
         private const val apiKey = BuildConfig.TMDB_API
+        
+        // AGGIUNGI QUESTI HEADERS - COME TORRENTIO!
+        private val authHeaders = mapOf(
+            "Authorization" to "Bearer $apiKey",
+            "accept" to "application/json"
+        )
 
         fun getType(t: String?): TvType {
             return when (t) {
@@ -64,22 +70,23 @@ class StremioX(override var mainUrl: String, override var name: String) : TmdbPr
         }
     }
 
+    // RIMUOVI api_key DA TUTTE LE URL!
     override val mainPage = mainPageOf(
-        "$tmdbAPI/trending/all/day?api_key=$apiKey&region=US" to "Trending",
-        "$tmdbAPI/movie/popular?api_key=$apiKey&region=US" to "Popular Movies",
-        "$tmdbAPI/tv/popular?api_key=$apiKey&region=US&with_original_language=en" to "Popular TV Shows",
-        "$tmdbAPI/tv/airing_today?api_key=$apiKey&region=US&with_original_language=en" to "Airing Today TV Shows",
-        "$tmdbAPI/discover/tv?api_key=$apiKey&with_networks=213" to "Netflix",
-        "$tmdbAPI/discover/tv?api_key=$apiKey&with_networks=1024" to "Amazon",
-        "$tmdbAPI/discover/tv?api_key=$apiKey&with_networks=2739" to "Disney+",
-        "$tmdbAPI/discover/tv?api_key=$apiKey&with_networks=453" to "Hulu",
-        "$tmdbAPI/discover/tv?api_key=$apiKey&with_networks=2552" to "Apple TV+",
-        "$tmdbAPI/discover/tv?api_key=$apiKey&with_networks=49" to "HBO",
-        "$tmdbAPI/discover/tv?api_key=$apiKey&with_networks=4330" to "Paramount+",
-        "$tmdbAPI/movie/top_rated?api_key=$apiKey&region=US" to "Top Rated Movies",
-        "$tmdbAPI/tv/top_rated?api_key=$apiKey&region=US" to "Top Rated TV Shows",
-        "$tmdbAPI/movie/upcoming?api_key=$apiKey&region=US" to "Upcoming Movies",
-        "$tmdbAPI/discover/tv?api_key=$apiKey&with_original_language=ko" to "Korean Shows",
+        "$tmdbAPI/trending/all/day?region=US" to "Trending",  // ← NO api_key!
+        "$tmdbAPI/movie/popular?region=US" to "Popular Movies",
+        "$tmdbAPI/tv/popular?region=US&with_original_language=en" to "Popular TV Shows",
+        "$tmdbAPI/tv/airing_today?region=US&with_original_language=en" to "Airing Today TV Shows",
+        "$tmdbAPI/discover/tv?with_networks=213" to "Netflix",
+        "$tmdbAPI/discover/tv?with_networks=1024" to "Amazon",
+        "$tmdbAPI/discover/tv?with_networks=2739" to "Disney+",
+        "$tmdbAPI/discover/tv?with_networks=453" to "Hulu",
+        "$tmdbAPI/discover/tv?with_networks=2552" to "Apple TV+",
+        "$tmdbAPI/discover/tv?with_networks=49" to "HBO",
+        "$tmdbAPI/discover/tv?with_networks=4330" to "Paramount+",
+        "$tmdbAPI/movie/top_rated?region=US" to "Top Rated Movies",
+        "$tmdbAPI/tv/top_rated?region=US" to "Top Rated TV Shows",
+        "$tmdbAPI/movie/upcoming?region=US" to "Upcoming Movies",
+        "$tmdbAPI/discover/tv?with_original_language=ko" to "Korean Shows",
     )
 
     private fun getImageUrl(link: String?): String? {
@@ -98,7 +105,9 @@ class StremioX(override var mainUrl: String, override var name: String) : TmdbPr
         val adultQuery =
             if (settingsForProvider.enableAdult) "" else "&without_keywords=190370|13059|226161|195669|190370"
         val type = if (request.data.contains("/movie")) "movie" else "tv"
-        val home = app.get("${request.data}$adultQuery&page=$page")
+        
+        // AGGIUNGI HEADERS QUI!
+        val home = app.get("${request.data}$adultQuery&page=$page", headers = authHeaders)
             .parsedSafe<Results>()?.results?.mapNotNull { media ->
                 media.toSearchResponse(type)
             } ?: throw ErrorLoadingException("Invalid Json reponse")
@@ -118,8 +127,10 @@ class StremioX(override var mainUrl: String, override var name: String) : TmdbPr
     override suspend fun quickSearch(query: String): List<SearchResponse>? = search(query,1)?.items
 
     override suspend fun search(query: String, page: Int): SearchResponseList? {
+        // AGGIUNGI HEADERS E RIMUOVI api_key!
         return app.get(
-            "$tmdbAPI/search/multi?api_key=$apiKey&language=en-US&query=$query&page=$page&include_adult=${settingsForProvider.enableAdult}"
+            "$tmdbAPI/search/multi?language=en-US&query=$query&page=$page&include_adult=${settingsForProvider.enableAdult}",
+            headers = authHeaders  // ← AGGIUNGI QUI!
         ).parsedSafe<Results>()?.results?.mapNotNull { media ->
             media.toSearchResponse()
         }?.toNewSearchResponseList()
@@ -129,12 +140,16 @@ class StremioX(override var mainUrl: String, override var name: String) : TmdbPr
     override suspend fun load(url: String): LoadResponse? {
         val data = parseJson<Data>(url)
         val type = getType(data.type)
+        
+        // RIMUOVI api_key DALLE URL!
         val resUrl = if (type == TvType.Movie) {
-            "$tmdbAPI/movie/${data.id}?api_key=$apiKey&append_to_response=keywords,credits,external_ids,videos,recommendations"
+            "$tmdbAPI/movie/${data.id}?append_to_response=keywords,credits,external_ids,videos,recommendations"
         } else {
-            "$tmdbAPI/tv/${data.id}?api_key=$apiKey&append_to_response=keywords,credits,external_ids,videos,recommendations"
+            "$tmdbAPI/tv/${data.id}?append_to_response=keywords,credits,external_ids,videos,recommendations"
         }
-        val res = app.get(resUrl).parsedSafe<MediaDetail>()
+        
+        // AGGIUNGI HEADERS!
+        val res = app.get(resUrl, headers = authHeaders).parsedSafe<MediaDetail>()
             ?: throw ErrorLoadingException("Invalid Json Response")
 
         val title = res.title ?: res.name ?: return null
@@ -164,8 +179,11 @@ class StremioX(override var mainUrl: String, override var name: String) : TmdbPr
 
         return if (type == TvType.TvSeries) {
             val episodes = res.seasons?.mapNotNull { season ->
-                app.get("$tmdbAPI/${data.type}/${data.id}/season/${season.seasonNumber}?api_key=$apiKey")
-                    .parsedSafe<MediaDetailEpisodes>()?.episodes?.map { eps ->
+                // AGGIUNGI HEADERS ANCHE QUI!
+                app.get(
+                    "$tmdbAPI/${data.type}/${data.id}/season/${season.seasonNumber}",
+                    headers = authHeaders  // ← AGGIUNGI
+                ).parsedSafe<MediaDetailEpisodes>()?.episodes?.map { eps ->
                         newEpisode(LoadData(
                             res.external_ids?.imdb_id,
                             eps.seasonNumber,
@@ -477,5 +495,4 @@ class StremioX(override var mainUrl: String, override var name: String) : TmdbPr
         @JsonProperty("credits") val credits: Credits? = null,
         @JsonProperty("recommendations") val recommendations: ResultsRecommendations? = null,
     )
-
 }
