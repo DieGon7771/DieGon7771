@@ -7,7 +7,6 @@ import com.lagradost.cloudstream3.network.CloudflareKiller
 import com.lagradost.cloudstream3.utils.ExtractorApi
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.ExtractorLinkType
-import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.newExtractorLink
 import org.json.JSONObject
 
@@ -16,8 +15,8 @@ class VixCloudExtractor : ExtractorApi() {
     override val name = "VixCloud"
     override val requiresReferer = false
     val TAG = "VixCloudExtractor"
-    private var referer: String? = null
     
+    // Headers come val (non mutableMap)
     private val headers = mapOf(
         "Accept" to "*/*",
         "Connection" to "keep-alive",
@@ -34,7 +33,6 @@ class VixCloudExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-        this.referer = referer
         Log.d(TAG, "REFERER: $referer  URL: $url")
         
         val playlistUrl = getPlaylistLink(url)
@@ -50,8 +48,8 @@ class VixCloudExtractor : ExtractorApi() {
                 url = finalPlaylistUrl,
                 type = ExtractorLinkType.M3U8
             ) {
-                this.headers = headers
-                this.quality = Qualities.`1080`.value
+                this.headers.putAll(headers) // Usa putAll invece di assegnazione
+                // Rimuovi quality se dà problemi, non è essenziale
                 this.isM3u8 = true
             }
         )
@@ -64,8 +62,7 @@ class VixCloudExtractor : ExtractorApi() {
                 url = playlistUrl,
                 type = ExtractorLinkType.VIDEO
             ) {
-                this.headers = headers
-                this.quality = Qualities.`1080`.value
+                this.headers.putAll(headers)
                 this.isM3u8 = true
             }
         )
