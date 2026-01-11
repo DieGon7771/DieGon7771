@@ -20,7 +20,7 @@
         android:id="@+id/tvNoLinks"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="There are no links yet."
+        android:text="Non ci sono ancora link."
         android:textColor="#8FBCBB"
         android:gravity="center"
         android:padding="24dp"
