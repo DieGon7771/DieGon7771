@@ -17,7 +17,7 @@
         android:paddingEnd="12dp"
         android:paddingBottom="14dp">
 
-        <!-- Pulsante elimina - icona moderna -->
+        <!-- Pulsante elimina -->
         <ImageButton
             android:id="@+id/btnDelete"
             android:layout_width="36dp"
@@ -25,12 +25,12 @@
             android:layout_alignParentTop="true"
             android:layout_alignParentEnd="true"
             android:layout_marginStart="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:background="?android:attr/selectableItemBackground"
             android:contentDescription="Elimina"
             android:src="@drawable/ic_delete_modern"
             android:tint="#757575" />
 
-        <!-- Badge tipo - più elegante -->
+        <!-- Badge tipo -->
         <TextView
             android:id="@+id/tvType"
             android:layout_width="wrap_content"
@@ -47,7 +47,7 @@
             android:paddingVertical="4dp"
             android:gravity="center"/>
 
-        <!-- Nome link - più leggibile -->
+        <!-- Nome link -->
         <TextView
             android:id="@+id/tvName"
             android:layout_width="match_parent"
@@ -61,7 +61,7 @@
             android:singleLine="true"
             android:ellipsize="end" />
 
-        <!-- URL - migliore contrasto -->
+        <!-- URL -->
         <TextView
             android:id="@+id/tvLink"
             android:layout_width="match_parent"
