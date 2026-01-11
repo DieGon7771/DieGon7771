@@ -1,4 +1,14 @@
-## StremioX (Addon di Streaming)
+# Estensione Stremio
+
+Stremio è un’estensione sperimentale per CloudStream che offre due modalità separate per gestire gli addon di Stremio:
+
+- **StremioX** – per gli addon di streaming
+- **StremioC** – per gli addon catalogo
+
+
+> ⚠️ Funzionalità sperimentale: non aspettarti un’esperienza completa come quella di Stremio nativo.
+
+## StremioX
 StremioX viene utilizzata per gestire gli addon di streaming di Stremio.
 
 ### Funzionalità
@@ -6,11 +16,10 @@ StremioX viene utilizzata per gestire gli addon di streaming di Stremio.
 
 • Numero di link illimitato
 
-Interfaccia semplice con due azioni:
+• Interfaccia semplice con due azioni:
 
-Add Link (aggiungi link)
-
-List Links (lista link)
+- **Add Link** (aggiungi link)
+- **List Links** (lista link)
 
 ### Aggiunta di un addon
 
@@ -24,7 +33,6 @@ Conferma l’aggiunta
 
 ### ⚠️ Importante:
 Dopo aver aggiunto, modificato o rimosso uno o più link, è necessario premere l’icona di salvataggio (💾) nella schermata principale per applicare le modifiche.
-Gestione dei link
 
 ### Note
 La disponibilità degli stream dipende esclusivamente dall’addon utilizzato.
