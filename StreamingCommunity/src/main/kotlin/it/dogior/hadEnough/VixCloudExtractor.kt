@@ -1,12 +1,13 @@
 package it.dogior.hadEnough
 
 import android.util.Log
-import com.lagradost.cloudstream3.*
+import com.lagradost.cloudstream3.SubtitleFile
 import com.lagradost.cloudstream3.app
 import com.lagradost.cloudstream3.network.CloudflareKiller
 import com.lagradost.cloudstream3.utils.ExtractorApi
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.ExtractorLinkType
+import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.newExtractorLink
 import org.json.JSONObject
 
@@ -22,9 +23,9 @@ class VixCloudExtractor : ExtractorApi() {
         "Connection" to "keep-alive",
         "Cache-Control" to "no-cache",
         "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:131.0) Gecko/20100101 Firefox/131.0",
-        "Referer" to "https://streamingcommunity.com/",
-        "Origin" to "https://streamingcommunity.com",
-        "Accept-Encoding" to "identity" // Importante per download
+        "Referer" to "https://streamingunity.so/",
+        "Origin" to "https://streamingunity.so",
+        "Accept-Encoding" to "identity"
     )
 
     override suspend fun getUrl(
@@ -50,7 +51,7 @@ class VixCloudExtractor : ExtractorApi() {
                 type = ExtractorLinkType.M3U8
             ) {
                 this.headers = headers
-                this.quality = Qualities.1080.value
+                this.quality = Qualities.`1080`.value
                 this.isM3u8 = true
             }
         )
@@ -64,7 +65,7 @@ class VixCloudExtractor : ExtractorApi() {
                 type = ExtractorLinkType.VIDEO
             ) {
                 this.headers = headers
-                this.quality = Qualities.1080.value
+                this.quality = Qualities.`1080`.value
                 this.isM3u8 = true
             }
         )
