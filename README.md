@@ -26,6 +26,12 @@ Clicca sull'immagine per installare la repo oppure vai in *Impostazioni* -> *Est
   </a>
 </p>
 
+## 📘 Guide Plugins
+
+**Stremio – Guida**
+Spiegazione dettagliata di StremioX (addon di streaming) e StremioC (addon catalogo).
+
+[Apri Guida →](https://raw.githubusercontent.com/DieGon7771/ItaliaInStreaming/master/README_Stremio.md)
 
 ## 🔀 Crediti
 • **La maggior parte dei plugin** sono forkati da: [doGiorsHadEnough](https://github.com/doGior/doGiorsHadEnough) 
