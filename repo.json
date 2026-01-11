@@ -1,0 +1,9 @@
+{
+  "name": "DieGon Repository",
+  "iconUrl": "https://raw.githubusercontent.com/DieGon7771/ItaliaInStreaming/master/repo_icon.png",
+  "description": "Repository con provider prevalentemente italiani e alcuni internazionali",
+  "manifestVersion": 1,
+  "pluginLists": [
+    "https://raw.githubusercontent.com/DieGon7771/ItaliaInStreaming/builds/plugins.json"
+  ]
+}
