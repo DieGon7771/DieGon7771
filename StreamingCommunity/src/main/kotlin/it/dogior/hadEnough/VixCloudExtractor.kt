@@ -15,16 +15,12 @@ class VixCloudExtractor : ExtractorApi() {
     override val name = "VixCloud"
     override val requiresReferer = false
     val TAG = "VixCloudExtractor"
-    
-    // Headers come val (non mutableMap)
-    private val headers = mapOf(
+    private var referer: String? = null
+    private val h = mutableMapOf(
         "Accept" to "*/*",
         "Connection" to "keep-alive",
         "Cache-Control" to "no-cache",
-        "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:131.0) Gecko/20100101 Firefox/131.0",
-        "Referer" to "https://streamingunity.so/",
-        "Origin" to "https://streamingunity.so",
-        "Accept-Encoding" to "identity"
+        "user-agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:131.0) Gecko/20100101 Firefox/131.0",
     )
 
     override suspend fun getUrl(
@@ -33,105 +29,23 @@ class VixCloudExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
+        this.referer = referer
         Log.d(TAG, "REFERER: $referer  URL: $url")
-        
         val playlistUrl = getPlaylistLink(url)
-        Log.w(TAG, "Master Playlist URL: $playlistUrl")
-        
-        // Prova a ottenere la playlist specifica per il video
-        val finalPlaylistUrl = getVideoPlaylistUrl(playlistUrl)
-        
+        Log.w(TAG, "FINAL URL: $playlistUrl")
+
         callback.invoke(
             newExtractorLink(
                 source = "VixCloud",
-                name = "Streaming Community - 1080p",
-                url = finalPlaylistUrl,
+                name = "Streaming Community - VixCloud",
+                url = playlistUrl,
                 type = ExtractorLinkType.M3U8
             ) {
-                this.headers.putAll(headers) // Usa putAll invece di assegnazione
-                // Rimuovi quality se dà problemi, non è essenziale
-                this.isM3u8 = true
+                this.headers = h
             }
         )
-        
-        // Aggiungi anche un link di fallback per compatibilità
-        callback.invoke(
-            newExtractorLink(
-                source = "VixCloud-Direct",
-                name = "SC - Direct Video",
-                url = playlistUrl,
-                type = ExtractorLinkType.VIDEO
-            ) {
-                this.headers.putAll(headers)
-                this.isM3u8 = true
-            }
-        )
-    }
 
-    private suspend fun getVideoPlaylistUrl(masterUrl: String): String {
-        return try {
-            // Scarica la master playlist
-            val response = app.get(masterUrl, headers = headers, timeout = 30)
-            if (!response.isSuccessful) {
-                Log.e(TAG, "Errore scaricamento master playlist: ${response.code}")
-                return masterUrl
-            }
-            
-            val content = response.text
-            Log.d(TAG, "Master playlist (prime 20 righe):")
-            content.lines().take(20).forEach { Log.d(TAG, it) }
-            
-            // Analizza la playlist per trovare la qualità migliore
-            val lines = content.lines()
-            var bestQualityUrl: String? = null
-            var bestQuality = -1
-            
-            for (i in lines.indices) {
-                val line = lines[i]
-                
-                // Cerca righe con risoluzione
-                if (line.contains("RESOLUTION=")) {
-                    // Estrai risoluzione
-                    val resolutionMatch = Regex("RESOLUTION=(\\d+)x(\\d+)").find(line)
-                    val width = resolutionMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
-                    
-                    // Controlla la riga successiva per l'URL
-                    val nextLine = lines.getOrNull(i + 1)
-                    if (nextLine != null && 
-                        (nextLine.endsWith(".m3u8") || nextLine.contains(".m3u8?")) && 
-                        !nextLine.startsWith("#")) {
-                        
-                        // Seleziona la risoluzione più alta
-                        if (width > bestQuality) {
-                            bestQuality = width
-                            bestQualityUrl = nextLine
-                        }
-                    }
-                }
-            }
-            
-            // Se trovata una playlist specifica
-            if (bestQualityUrl != null) {
-                // Costruisci URL completo
-                val baseUrl = masterUrl.substringBeforeLast("/") + "/"
-                val fullUrl = if (bestQualityUrl.startsWith("http")) {
-                    bestQualityUrl
-                } else {
-                    baseUrl + bestQualityUrl
-                }
-                
-                Log.d(TAG, "Trovata playlist qualità: ${bestQuality}p - URL: $fullUrl")
-                return fullUrl
-            }
-            
-            // Se non trovato, usa la master
-            Log.d(TAG, "Nessuna playlist specifica trovata, uso master")
-            masterUrl
-            
-        } catch (e: Exception) {
-            Log.e(TAG, "Errore ottenendo video playlist: ${e.message}")
-            masterUrl // Fallback alla master
-        }
+
     }
 
     private suspend fun getPlaylistLink(url: String): String {
@@ -164,16 +78,16 @@ class VixCloudExtractor : ExtractorApi() {
     private suspend fun getScript(url: String): JSONObject {
         Log.d(TAG, "Item url: $url")
 
-        val iframe = app.get(url, headers = headers, interceptor = CloudflareKiller()).document
-        Log.d(TAG, "Iframe ottenuto")
+        val iframe = app.get(url, headers = h, interceptor = CloudflareKiller()).document
+        Log.d(TAG, iframe.toString())
 
+//        Log.d(TAG, iframe.document.toString())
         val scripts = iframe.select("script")
         val script =
-            scripts.find { it.data().contains("masterPlaylist") }?.data()?.replace("\n", "\t")
-                ?: throw Error("Script non trovato")
+            scripts.find { it.data().contains("masterPlaylist") }!!.data().replace("\n", "\t")
 
         val scriptJson = getSanitisedScript(script)
-        Log.d(TAG, "Script Json ottenuto")
+        Log.d(TAG, "Script Json: $scriptJson")
         return JSONObject(scriptJson)
     }
 
