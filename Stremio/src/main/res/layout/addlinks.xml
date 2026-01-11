@@ -9,7 +9,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Add link"
+        android:text="Aggiungi link"
         android:textSize="18sp"
         android:textStyle="bold" />
 
@@ -18,7 +18,7 @@
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:autofillHints=""
-        android:hint="Extension Name"
+        android:hint="Nome Add-on"
         android:inputType="text"
         android:layout_marginTop="12dp"
         android:textColorHint="#666" />
