@@ -4,56 +4,64 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:layout_marginVertical="2dp"
-    android:layout_marginHorizontal="2dp"
+    android:layout_marginVertical="4dp"
+    android:layout_marginHorizontal="4dp"
     android:padding="0dp"
-    android:background="#4C566A">
+    android:background="@drawable/item_background">
 
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingStart="12dp"
-        android:paddingTop="8dp"
-        android:paddingEnd="8dp"
-        android:paddingBottom="8dp">
+        android:paddingStart="16dp"
+        android:paddingTop="14dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="14dp">
 
+        <!-- Pulsante elimina - icona moderna -->
         <ImageButton
             android:id="@+id/btnDelete"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
             android:layout_alignParentTop="true"
             android:layout_alignParentEnd="true"
             android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Elimina"
-            android:src="@android:drawable/ic_menu_delete" />
+            android:src="@drawable/ic_delete_modern"
+            android:tint="#757575" />
 
+        <!-- Badge tipo - più elegante -->
         <TextView
             android:id="@+id/tvType"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_below="@id/btnDelete"
             android:layout_alignParentEnd="true"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="6dp"
             android:text="StremioX"
-            android:textColor="#88C0D0"
-            android:textSize="10sp"
-            android:paddingHorizontal="6dp"
-            android:paddingVertical="1dp"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:background="@drawable/badge_modern"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="4dp"
             android:gravity="center"/>
 
+        <!-- Nome link - più leggibile -->
         <TextView
             android:id="@+id/tvName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_toStartOf="@id/btnDelete"
             android:layout_alignParentStart="true"
-            android:text="Nome link"
-            android:textColor="#ECEFF4"
-            android:textSize="14sp"
+            android:text="Nome Add-on"
+            android:textColor="#212121"
+            android:textSize="16sp"
             android:textStyle="bold"
             android:singleLine="true"
             android:ellipsize="end" />
 
+        <!-- URL - migliore contrasto -->
         <TextView
             android:id="@+id/tvLink"
             android:layout_width="match_parent"
@@ -61,12 +69,13 @@
             android:layout_below="@id/tvName"
             android:layout_toStartOf="@id/tvType"
             android:layout_alignParentStart="true"
-            android:layout_marginTop="2dp"
-            android:text="https://example.com/very/long/url"
-            android:textColor="#A3BE8C"
-            android:textSize="11sp"
+            android:layout_marginTop="8dp"
+            android:text="https://example.com/manifest.json"
+            android:textColor="#424242"
+            android:textSize="13sp"
             android:singleLine="true"
-            android:ellipsize="end" />
+            android:ellipsize="middle"
+            android:typeface="monospace" />
 
     </RelativeLayout>
 </LinearLayout>
